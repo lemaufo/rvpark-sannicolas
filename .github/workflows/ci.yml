@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev]
+
+jobs:
+  laravel:
+    name: Laravel 12 (PHP 8.2)
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: rvpark_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          extensions: mbstring, bcmath, pdo, pdo_mysql
+          coverage: none
+
+      - name: Copiar .env
+        run: cp .env.example .env
+
+      - name: Configurar .env para CI
+        run: |
+          sed -i 's/DB_DATABASE=rvpark_sannicolas/DB_DATABASE=rvpark_test/' .env
+          sed -i 's/DB_PASSWORD=/DB_PASSWORD=password/' .env
+
+      - name: Instalar dependencias PHP
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Generar APP_KEY
+        run: php artisan key:generate
+
+      - name: Instalar dependencias JS
+        run: npm ci
+
+      - name: Build assets
+        run: npm run build
+
+      - name: Crear tablas (migrate)
+        run: php artisan migrate --force
+
+      - name: Ejecutar tests
+        run: php artisan test --stop-on-failure
