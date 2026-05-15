@@ -29,11 +29,7 @@ class CheckRole
         // Comparar el rol del usuario con el rol requerido por la ruta
         if ($request->user()->role !== $role) {
             // Redirigir según el rol real del usuario (evitar bucle de 403)
-            return match ($request->user()->role) {
-                'admin' => redirect()->route('admin.dashboard'),
-                'receptionist' => redirect()->route('dashboard.index'),
-                default => abort(403, 'No tienes permiso para acceder a esta sección.'),
-            };
+            return redirect()->route('dashboard');
         }
 
         return $next($request);
