@@ -27,14 +27,14 @@ Route::middleware(['auth', 'verified', 'role:admin'])
 
         // Dashboard principal del administrador
         Route::get('/dashboard', function () {
-            return view('admin.dashboard');
+            return view('dashboard'); // usa dashboard.blade.php
         })->name('dashboard');
 
         // Gestión de usuarios (ejemplo)
         Route::get('/usuarios', function () {
             return view('admin.usuarios.index');
         })->name('usuarios.index');
-        
+
 
         // Aquí irán las rutas de Eduardo cuando estén listas
         // Route::resource('/lotes', LoteController::class);
@@ -52,30 +52,13 @@ Route::middleware(['auth', 'verified', 'role:receptionist'])
 
         // Dashboard principal del recepcionista (destino post-login)
         Route::get('/dashboard', function () {
-            return view('receptionist.dashboard');
+            return view('dashboard'); // usa dashboard.blade.php
         })->name('index'); // → nombre final: dashboard.index
     });
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GRUPO RECEPCIONISTA — Reservas
-// Acceso restringido a usuarios autenticados con rol 'receptionist'
+// NOTA: Las rutas del panel (inventario, reservas, registro, configuracion)
+// están definidas en panel.php para evitar conflictos de nombres de ruta.
+// Este archivo solo contiene rutas con control de roles.
 // ─────────────────────────────────────────────────────────────────────────────
-Route::middleware(['auth', 'verified', 'role:receptionist'])
-    ->prefix('reservas')
-    ->name('reservas.')
-    ->group(function () {
-
-        // Vista principal de reservas
-        Route::get('/', function () {
-            return view('receptionist.reservas.index');
-        })->name('index');
-
-        // Detalle de una reserva
-        Route::get('/{id}', function ($id) {
-            return view('receptionist.reservas.show', compact('id'));
-        })->name('show');
-
-        // Aquí irán las rutas de Eduardo cuando estén listas
-        // Route::resource('/', ReservaController::class);
-    });

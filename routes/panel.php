@@ -4,7 +4,9 @@ use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
 
 Route::middleware(['auth', 'verified'])->group(function () {
+    // Dashboard genérico
     Route::view('dashboard', 'dashboard')->name('dashboard');
+
     Route::view('inventario', 'inventario')->name('inventario');
     Route::view('reservas', 'reservas')->name('reservas');
     Route::view('registro', 'registro')->name('registro');
