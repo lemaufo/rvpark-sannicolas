@@ -22,7 +22,7 @@ class CheckRole
     public function handle(Request $request, Closure $next, string $role): Response
     {
         // Si no hay sesión activa, redirigir al login
-        if (! $request->user()) {
+        if (!$request->user()) {
             return redirect()->route('login');
         }
 
@@ -30,9 +30,9 @@ class CheckRole
         if ($request->user()->role !== $role) {
             // Redirigir según el rol real del usuario (evitar bucle de 403)
             return match ($request->user()->role) {
-                'admin'          => redirect()->route('admin.dashboard'),
-                'receptionist'   => redirect()->route('reservas.index'),
-                default          => abort(403, 'No tienes permiso para acceder a esta sección.'),
+                'admin' => redirect()->route('admin.dashboard'),
+                'receptionist' => redirect()->route('dashboard.index'),
+                default => abort(403, 'No tienes permiso para acceder a esta sección.'),
             };
         }
 

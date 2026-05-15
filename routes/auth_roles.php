@@ -42,7 +42,23 @@ Route::middleware(['auth', 'verified', 'role:admin'])
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GRUPO RECEPCIONISTA
+// GRUPO RECEPCIONISTA — Dashboard principal
+// Punto de entrada tras el login. Ruta: GET /recepcionista/dashboard
+// ─────────────────────────────────────────────────────────────────────────────
+Route::middleware(['auth', 'verified', 'role:receptionist'])
+    ->prefix('recepcionista')
+    ->name('dashboard.')
+    ->group(function () {
+
+        // Dashboard principal del recepcionista (destino post-login)
+        Route::get('/dashboard', function () {
+            return view('receptionist.dashboard');
+        })->name('index'); // → nombre final: dashboard.index
+    });
+
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GRUPO RECEPCIONISTA — Reservas
 // Acceso restringido a usuarios autenticados con rol 'receptionist'
 // ─────────────────────────────────────────────────────────────────────────────
 Route::middleware(['auth', 'verified', 'role:receptionist'])
@@ -50,7 +66,7 @@ Route::middleware(['auth', 'verified', 'role:receptionist'])
     ->name('reservas.')
     ->group(function () {
 
-        // Vista principal de reservas (destino del redirect post-login)
+        // Vista principal de reservas
         Route::get('/', function () {
             return view('receptionist.reservas.index');
         })->name('index');

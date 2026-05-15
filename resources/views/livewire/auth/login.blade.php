@@ -45,7 +45,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
         if ($user->role === 'admin') {
             $this->redirect(route('admin.dashboard', absolute: false), navigate: true);
         } elseif ($user->role === 'receptionist') {
-            $this->redirect(route('reservas.index', absolute: false), navigate: true);
+            $this->redirect(route('dashboard.index', absolute: false), navigate: true);
         } else {
             // Rol no reconocido: redirigir al dashboard genérico de Breeze
             $this->redirectIntended(default: route('dashboard', absolute: false), navigate: true);
