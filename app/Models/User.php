@@ -22,6 +22,7 @@ class User extends Authenticatable // implements MustVerifyEmail
         'name',
         'email',
         'password',
+        'role', // 'admin' | 'receptionist'
     ];
 
     /**
@@ -56,5 +57,32 @@ class User extends Authenticatable // implements MustVerifyEmail
             ->explode(' ')
             ->map(fn (string $name) => Str::of($name)->substr(0, 1))
             ->implode('');
+    }
+
+    /**
+     * Verifica si el usuario tiene un rol específico.
+     *
+     * Uso en Blade : @if(auth()->user()->hasRole('admin'))
+     * Uso en código: $user->hasRole('receptionist')
+     */
+    public function hasRole(string $role): bool
+    {
+        return $this->role === $role;
+    }
+
+    /**
+     * Indica si el usuario es administrador.
+     */
+    public function isAdmin(): bool
+    {
+        return $this->hasRole('admin');
+    }
+
+    /**
+     * Indica si el usuario es recepcionista.
+     */
+    public function isReceptionist(): bool
+    {
+        return $this->hasRole('receptionist');
     }
 }
