@@ -26,6 +26,13 @@
     --color-accent: var(--color-neutral-800);
     --color-accent-content: var(--color-neutral-800);
     --color-accent-foreground: var(--color-white);
+
+    /* Brand Colors (High Fidelity) */
+    --color-brand-green: #4a5d41;
+    --color-brand-green-dark: #3a4a34;
+    --color-brand-green-light: #5d7452;
+
+    --shadow-premium: 0 10px 30px -10px rgba(74, 93, 65, 0.15);
 }
 
 @layer theme {
@@ -44,6 +51,25 @@
     ::backdrop,
     ::file-selector-button {
         border-color: var(--color-gray-200, currentColor);
+    }
+
+    body {
+        background-color: #f9fafb;
+        color: #171717;
+    }
+}
+
+@layer components {
+    .sidebar-item-active {
+        @apply bg-brand-green text-white shadow-sm;
+    }
+
+    .sidebar-item-hover {
+        @apply hover:bg-zinc-100 transition-colors duration-200;
+    }
+
+    .card-base {
+        @apply bg-white border border-zinc-200 rounded-xl shadow-sm p-6;
     }
 }
 

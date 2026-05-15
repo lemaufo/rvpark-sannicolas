@@ -7,9 +7,13 @@ Route::get('/', function () {
     return view('welcome');
 })->name('home');
 
-Route::view('dashboard', 'dashboard')
-    ->middleware(['auth', 'verified'])
-    ->name('dashboard');
+Route::middleware(['auth', 'verified'])->group(function () {
+    Route::view('dashboard', 'dashboard')->name('dashboard');
+    Route::view('inventario', 'inventario')->name('inventario');
+    Route::view('reservas', 'reservas')->name('reservas');
+    Route::view('registro', 'registro')->name('registro');
+    Route::view('configuracion', 'configuracion')->name('configuracion');
+});
 
 Route::middleware(['auth'])->group(function () {
     Route::redirect('settings', 'settings/profile');
