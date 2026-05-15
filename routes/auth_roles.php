@@ -34,6 +34,7 @@ Route::middleware(['auth', 'verified', 'role:admin'])
         Route::get('/usuarios', function () {
             return view('admin.usuarios.index');
         })->name('usuarios.index');
+        
 
         // Aquí irán las rutas de Eduardo cuando estén listas
         // Route::resource('/lotes', LoteController::class);
