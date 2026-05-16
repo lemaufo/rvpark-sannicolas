@@ -23,10 +23,6 @@
     --color-zinc-900: #171717;
     --color-zinc-950: #0a0a0a;
 
-    --color-accent: var(--color-neutral-800);
-    --color-accent-content: var(--color-neutral-800);
-    --color-accent-foreground: var(--color-white);
-
     /* Brand Colors (High Fidelity) */
     --color-brand-green: #4a5d41;
     --color-brand-green-dark: #3a4a34;
@@ -35,24 +31,7 @@
     --shadow-premium: 0 10px 30px -10px rgba(74, 93, 65, 0.15);
 }
 
-@layer theme {
-    .dark {
-        --color-accent: var(--color-white);
-        --color-accent-content: var(--color-white);
-        --color-accent-foreground: var(--color-neutral-800);
-    }
-}
-
 @layer base {
-
-    *,
-    ::after,
-    ::before,
-    ::backdrop,
-    ::file-selector-button {
-        border-color: var(--color-gray-200, currentColor);
-    }
-
     body {
         background-color: #f9fafb;
         color: #171717;
@@ -69,24 +48,45 @@
     }
 
     .card-base {
-        @apply bg-white border border-zinc-200 rounded-xl shadow-sm p-6;
+        @apply bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm p-6;
+    }
+
+    /* 
+       FORZAR COLOR VERDE EN NAVEGACIÓN 
+       Igual al botón de "Nueva Reserva" (#4a5d41)
+    */
+    [data-flux-navlist-item][data-current],
+    [data-flux-navlist-item][data-current] * {
+        background-color: #4a5d41 !important;
+        color: white !important;
+        opacity: 1 !important;
+    }
+
+    /* Iconos en blanco cuando está seleccionado */
+    [data-flux-navlist-item][data-current] svg,
+    [data-flux-navlist-item][data-current] svg * {
+        color: white !important;
+        stroke: white !important;
+        fill: none !important;
+    }
+
+    /* Hover para el elemento seleccionado */
+    [data-flux-navlist-item][data-current]:hover {
+        background-color: #3a4a34 !important;
     }
 }
 
-[data-flux-field] {
-    @apply grid gap-2;
+/* Global Overrides for Flux */
+:root {
+    --color-accent: #4a5d41;
+    --color-accent-content: #ffffff;
+    --flux-accent: #4a5d41;
+    --flux-accent-content: #ffffff;
 }
 
-[data-flux-label] {
-    @apply  !mb-0 !leading-tight;
+.dark {
+    --color-accent: #5d7452;
+    --color-accent-content: #ffffff;
+    --flux-accent: #5d7452;
+    --flux-accent-content: #ffffff;
 }
-
-input:focus[data-flux-control],
-textarea:focus[data-flux-control],
-select:focus[data-flux-control] {
-    @apply outline-hidden ring-2 ring-accent ring-offset-2 ring-offset-accent-foreground;
-}
-
-/* \[:where(&)\]:size-4 {
-    @apply size-4;
-} */
