@@ -25,10 +25,9 @@ Route::middleware(['auth', 'verified', 'role:admin'])
     ->name('admin.')
     ->group(function () {
 
-        // Dashboard principal del administrador
-        Route::get('/dashboard', function () {
-            return view('dashboard'); // usa dashboard.blade.php
-        })->name('dashboard');
+        // Dashboard principal del administrador — con datos reales de BD
+        Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'adminIndex'])
+            ->name('dashboard');
 
         // Gestión de usuarios (ejemplo)
         Route::get('/usuarios', function () {
