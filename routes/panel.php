@@ -7,7 +7,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Un solo /dashboard para todos los roles
     Route::get('dashboard', function () {
         $view = match (auth()->user()->role) {
-            'admin' => 'admin.dashboard',
+            'admin' => 'panel',
             'receptionist' => 'receptionist.dashboard',
             default => 'dashboard',
         };

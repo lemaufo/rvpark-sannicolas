@@ -2,32 +2,39 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="dark">
     <head>
         @include('partials.head')
+        <style>
+            /* FUERZA BRUTA PARA EL COLOR VERDE */
+            [data-flux-navlist-item][data-current],
+            [data-flux-navlist-item][data-current]:hover {
+                background-color: #4a5d41 !important;
+                color: white !important;
+            }
+            [data-flux-navlist-item][data-current] svg,
+            [data-flux-navlist-item][data-current] svg * {
+                stroke: white !important;
+                color: white !important;
+            }
+        </style>
     </head>
     <body class="min-h-screen bg-white dark:bg-zinc-800">
         <flux:sidebar sticky stashable class="border-r border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900">
             <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
 
-            <a href="{{ route('dashboard') }}" class="mr-5 flex items-center space-x-2" wire:navigate>
-                <x-app-logo class="size-8" href="#"></x-app-logo>
+            <a href="{{ route('dashboard') }}" class="flex justify-center py-8 w-full" wire:navigate>
+                <img src="{{ asset('logo_triangular.png') }}" alt="Logo" style="width: 160px; height: auto;" class="object-contain">
             </a>
 
-            <flux:navlist variant="outline">
-                <flux:navlist.group heading="Platform" class="grid">
-                    <flux:navlist.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>Dashboard</flux:navlist.item>
+            <flux:navlist>
+                <flux:navlist.group heading="Plataforma" class="grid">
+                    <flux:navlist.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')" wire:navigate>Panel</flux:navlist.item>
+                    <flux:navlist.item icon="archive-box" :href="route('inventario')" :current="request()->routeIs('inventario')" wire:navigate>Inventario</flux:navlist.item>
+                    <flux:navlist.item icon="calendar" :href="route('reservas')" :current="request()->routeIs('reservas')" wire:navigate>Reservaciones</flux:navlist.item>
+                    <flux:navlist.item icon="document-text" :href="route('registro')" :current="request()->routeIs('registro')" wire:navigate>Registro</flux:navlist.item>
+                    <flux:navlist.item icon="cog-6-tooth" :href="route('configuracion')" :current="request()->routeIs('configuracion')" wire:navigate>Configuración</flux:navlist.item>
                 </flux:navlist.group>
             </flux:navlist>
 
             <flux:spacer />
-
-            <flux:navlist variant="outline">
-                <flux:navlist.item icon="folder-git-2" href="https://github.com/laravel/livewire-starter-kit" target="_blank">
-                    Repository
-                </flux:navlist.item>
-
-                <flux:navlist.item icon="book-open-text" href="https://laravel.com/docs/starter-kits" target="_blank">
-                    Documentation
-                </flux:navlist.item>
-            </flux:navlist>
 
             <!-- Desktop User Menu -->
             <flux:dropdown position="bottom" align="start">
