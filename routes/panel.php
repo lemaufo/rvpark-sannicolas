@@ -6,10 +6,13 @@ use Livewire\Volt\Volt;
 Route::middleware(['auth', 'verified'])->group(function () {
     // Un solo /dashboard para todos los roles
     Route::get('dashboard', function () {
+        if (auth()->user()->role === 'admin') {
+            return app(\App\Http\Controllers\DashboardController::class)->adminIndex();
+        }
+
         $view = match (auth()->user()->role) {
-            'admin' => 'panel',
             'receptionist' => 'receptionist.dashboard',
-            default => 'dashboard',
+            default        => 'dashboard',
         };
         return view($view);
     })->name('dashboard');
