@@ -10,10 +10,59 @@
         {{-- Stats Grid --}}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
             @php
+                $today = \Carbon\Carbon::today();
+
+                // ── Entradas Hoy (Check-ins) ──────────────────────────────────
+                // Total programado/efectuado para hoy (excluyendo cancelados)
+                $checkinsTodayTotal = \App\Models\Reservation::whereDate('check_in', $today)
+                    ->where('status', '!=', 'cancelled')
+                    ->count();
+
+                // Pendientes (aún no hacen ingreso físico/check_in)
+                $checkinsPending = \App\Models\Reservation::whereDate('check_in', $today)
+                    ->whereIn('status', ['pending', 'confirmed'])
+                    ->count();
+
+                // ── Salidas Hoy (Check-outs) ──────────────────────────────────
+                // Total programado/efectuado para hoy (excluyendo cancelados y pendientes sin confirmar)
+                $checkoutsTodayTotal = \App\Models\Reservation::whereDate('check_out', $today)
+                    ->whereNotIn('status', ['cancelled', 'pending'])
+                    ->count();
+
+                // Pendientes (tienen huésped alojado o confirmado que no ha salido)
+                $checkoutsPending = \App\Models\Reservation::whereDate('check_out', $today)
+                    ->whereIn('status', ['confirmed', 'checked_in'])
+                    ->count();
+
+                // ── Unidades Disponibles ──────────────────────────────────────
+                $availableUnits = \App\Models\Unit::where('status', 'available')->count();
+                $totalUnits     = \App\Models\Unit::count();
+
                 $stats = [
-                    ['label' => 'Entradas Hoy', 'value' => '3', 'sub' => '2 pendientes', 'icon' => 'arrow-right-start-on-rectangle', 'color' => 'text-zinc-400', 'bg' => 'bg-zinc-50 dark:bg-zinc-800'],
-                    ['label' => 'Salidas Hoy', 'value' => '2', 'sub' => '1 pendiente', 'icon' => 'arrow-left-start-on-rectangle', 'color' => 'text-zinc-400', 'bg' => 'bg-zinc-50 dark:bg-zinc-800'],
-                    ['label' => 'Unidades Disponibles', 'value' => '5', 'sub' => 'de 28', 'icon' => 'home', 'color' => 'text-emerald-500', 'bg' => 'bg-emerald-50 dark:bg-emerald-900/30'],
+                    [
+                        'label' => 'Entradas Hoy',
+                        'value' => (string) $checkinsTodayTotal,
+                        'sub'   => $checkinsPending . ' pendiente' . ($checkinsPending !== 1 ? 's' : ''),
+                        'icon'  => 'arrow-right-start-on-rectangle',
+                        'color' => 'text-zinc-400',
+                        'bg'    => 'bg-zinc-50 dark:bg-zinc-800',
+                    ],
+                    [
+                        'label' => 'Salidas Hoy',
+                        'value' => (string) $checkoutsTodayTotal,
+                        'sub'   => $checkoutsPending . ' pendiente' . ($checkoutsPending !== 1 ? 's' : ''),
+                        'icon'  => 'arrow-left-start-on-rectangle',
+                        'color' => 'text-zinc-400',
+                        'bg'    => 'bg-zinc-50 dark:bg-zinc-800',
+                    ],
+                    [
+                        'label' => 'Unidades Disponibles',
+                        'value' => (string) $availableUnits,
+                        'sub'   => 'de ' . $totalUnits,
+                        'icon'  => 'home',
+                        'color' => 'text-emerald-500',
+                        'bg'    => 'bg-emerald-50 dark:bg-emerald-900/30',
+                    ],
                 ];
             @endphp
 
