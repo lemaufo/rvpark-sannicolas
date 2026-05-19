@@ -12,7 +12,7 @@
             }
         </style>
     </head>
-    <body class="min-h-screen bg-[#f9fafb] flex">
+    <body class="min-h-screen bg-[#f9fafb] dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 flex">
         <!-- Sidebar -->
         <x-layouts.admin.sidebar :active="$active ?? 'dashboard'" />
 

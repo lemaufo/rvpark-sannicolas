@@ -22,11 +22,11 @@
             @endphp
 
             @foreach($stats as $stat)
-                <div class="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[2rem] p-7 shadow-sm hover:shadow-md transition-shadow duration-300 group">
+                <div class="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 rounded-[2rem] p-7 shadow-sm hover:shadow-md transition-shadow duration-300 group">
                     <div class="flex items-start justify-between">
                         <div>
                             <p class="text-zinc-400 dark:text-zinc-500 text-[13px] font-bold uppercase tracking-wider">{{ $stat['label'] }}</p>
-                            <h3 class="text-3xl font-black text-zinc-900 dark:text-white mt-2">{{ $stat['value'] }}</h3>
+                            <h3 class="text-2xl font-black text-zinc-900 dark:text-white mt-2">{{ $stat['value'] }}</h3>
                             @isset($stat['sub'])
                                 <p class="text-zinc-400 dark:text-zinc-500 text-xs font-bold mt-1.5">{{ $stat['sub'] }}</p>
                             @endisset
