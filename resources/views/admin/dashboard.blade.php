@@ -1,4 +1,6 @@
-<x-layouts.admin active="dashboard">
+<x-layouts.app>
+    <div class="p-6 lg:p-10 max-w-7xl mx-auto">
+
     {{-- Header --}}
     <div class="mb-10 flex items-end justify-between">
         <div>
@@ -101,4 +103,5 @@
         </span>
         <span class="text-zinc-400 dark:text-zinc-500 text-sm font-medium">Acceso completo al sistema</span>
     </div>
-</x-layouts.admin>
+    </div>
+</x-layouts.app>
