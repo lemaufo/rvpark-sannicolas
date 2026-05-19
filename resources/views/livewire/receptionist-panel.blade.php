@@ -1,0 +1,272 @@
+<?php
+
+use Livewire\Volt\Component;
+use App\Models\Reservation;
+use App\Models\Unit;
+
+new class extends Component {
+    public $reservations;
+    public $units;
+
+
+
+    // Form fields
+    public $guest_name = '';
+    public $guest_phone = '';
+    public $unit_id = '';
+    public $check_in = '';
+    public $check_out = '';
+    public $total_amount = '';
+
+    public function mount()
+    {
+        $this->loadData();
+    }
+
+    public function loadData()
+    {
+        // Get today's arrivals
+        $this->reservations = Reservation::with('unit')->orderBy('check_in')->get();
+        $this->units = Unit::all();
+    }
+
+    public function createReservation()
+    {
+        $this->validate([
+            'guest_name' => 'required|string',
+            'unit_id' => 'required|exists:units,id',
+            'check_in' => 'required|date',
+            'check_out' => 'required|date|after:check_in',
+        ]);
+
+        Reservation::create([
+            'guest_name' => $this->guest_name,
+            'guest_phone' => $this->guest_phone,
+            'unit_id' => $this->unit_id,
+            'check_in' => $this->check_in,
+            'check_out' => $this->check_out,
+            'status' => 'pending',
+            'total_amount' => $this->total_amount ?: 0,
+        ]);
+
+        $this->reset(['guest_name', 'guest_phone', 'unit_id', 'check_in', 'check_out', 'total_amount']);
+        $this->loadData();
+        \Flux::modal('new-reservation')->close();
+    }
+
+    public function confirmReservation($id)
+    {
+        $res = Reservation::find($id);
+        if ($res && $res->status == 'pending') {
+            $res->update(['status' => 'confirmed']);
+            $this->loadData();
+        }
+    }
+
+    public function checkIn($id)
+    {
+        $res = Reservation::find($id);
+        if ($res && in_array($res->status, ['pending', 'confirmed'])) {
+            $res->update(['status' => 'checked_in']);
+            
+            // Sync unit status
+            $unit = Unit::find($res->unit_id);
+            if ($unit) {
+                $unit->update(['status' => 'occupied']);
+            }
+            
+            $this->loadData();
+        }
+    }
+
+    public function checkOut($id)
+    {
+        $res = Reservation::find($id);
+        if ($res && $res->status == 'checked_in') {
+            $res->update(['status' => 'checked_out']);
+            
+            // Sync unit status to cleaning
+            $unit = Unit::find($res->unit_id);
+            if ($unit) {
+                $unit->update(['status' => 'cleaning']);
+            }
+
+            $this->loadData();
+        }
+    }
+}; ?>
+
+<div class="space-y-8">
+    {{-- Top Action --}}
+    <div class="flex justify-end mb-6 -mt-16">
+        <flux:modal.trigger name="new-reservation">
+            <button class="bg-[#4a5d41] text-white px-6 py-3 rounded-2xl font-bold shadow-xl shadow-brand-green/20 hover:scale-[1.02] transition-all duration-200 flex items-center gap-2.5">
+                <flux:icon name="plus" class="size-5" />
+                <span>Nueva Reserva</span>
+            </button>
+        </flux:modal.trigger>
+    </div>
+
+    {{-- Stats Grid --}}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
+        @php
+            $todayArrivals = collect($reservations)->filter(fn($r) => \Carbon\Carbon::parse($r->check_in)->isToday() && in_array($r->status, ['pending', 'confirmed']))->count();
+            $todayDepartures = collect($reservations)->filter(fn($r) => \Carbon\Carbon::parse($r->check_out)->isToday() && $r->status === 'checked_in')->count();
+            $availableUnits = count($units) - collect($reservations)->filter(fn($r) => $r->status === 'checked_in')->count();
+        @endphp
+        
+        <div class="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[2rem] p-7 shadow-sm">
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-zinc-400 text-[13px] font-bold uppercase tracking-wider">Entradas Hoy</p>
+                    <h3 class="text-3xl font-black text-zinc-900 dark:text-white mt-2">{{ $todayArrivals }}</h3>
+                </div>
+                <div class="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-2xl text-blue-500">
+                    <flux:icon name="arrow-right-start-on-rectangle" class="size-7" />
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[2rem] p-7 shadow-sm">
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-zinc-400 text-[13px] font-bold uppercase tracking-wider">Salidas Hoy</p>
+                    <h3 class="text-3xl font-black text-zinc-900 dark:text-white mt-2">{{ $todayDepartures }}</h3>
+                </div>
+                <div class="p-4 bg-orange-50 dark:bg-orange-900/30 rounded-2xl text-orange-500">
+                    <flux:icon name="arrow-left-start-on-rectangle" class="size-7" />
+                </div>
+            </div>
+        </div>
+
+        <div class="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[2rem] p-7 shadow-sm">
+            <div class="flex items-start justify-between">
+                <div>
+                    <p class="text-zinc-400 text-[13px] font-bold uppercase tracking-wider">Disponibles</p>
+                    <h3 class="text-3xl font-black text-zinc-900 dark:text-white mt-2">{{ $availableUnits }} <span class="text-lg text-zinc-400">/ {{ count($units) }}</span></h3>
+                </div>
+                <div class="p-4 bg-emerald-50 dark:bg-emerald-900/30 rounded-2xl text-emerald-500">
+                    <flux:icon name="home" class="size-7" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- Tabs or Sections for Operations --}}
+    <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        
+        {{-- Entradas Pendientes --}}
+        <div class="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
+            <h3 class="text-xl font-bold text-zinc-900 dark:text-white mb-4 flex items-center gap-2">
+                <flux:icon name="arrow-right-start-on-rectangle" class="size-5 text-blue-500" />
+                Llegadas Esperadas / Pendientes
+            </h3>
+            
+            <div class="space-y-4">
+                @forelse(collect($reservations)->filter(fn($r) => in_array($r->status, ['pending', 'confirmed'])) as $res)
+                    <div class="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-700">
+                        <div>
+                            <p class="font-bold text-zinc-900 dark:text-white">{{ $res->guest_name }}</p>
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $res->unit->name ?? 'N/A' }} • Llegada: {{ \Carbon\Carbon::parse($res->check_in)->format('d/m/Y') }}</p>
+                            @if($res->status == 'pending')
+                                <span class="mt-1 inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-500">Pendiente de Confirmar</span>
+                            @else
+                                <span class="mt-1 inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-500">Confirmada</span>
+                            @endif
+                        </div>
+                        <div class="flex gap-2">
+                            @if($res->status == 'pending')
+                                <button wire:click="confirmReservation({{ $res->id }})" class="px-4 py-2 bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600 text-zinc-800 dark:text-zinc-200 text-sm font-bold rounded-xl transition-colors">
+                                    Confirmar
+                                </button>
+                            @endif
+                            <button wire:click="checkIn({{ $res->id }})" class="px-4 py-2 bg-[#4a5d41] hover:bg-[#3d4d35] text-white text-sm font-bold rounded-xl transition-colors shadow-sm">
+                                Check-In
+                            </button>
+                        </div>
+                    </div>
+                @empty
+                    <p class="text-zinc-500 text-sm py-4 text-center">No hay llegadas pendientes hoy.</p>
+                @endforelse
+            </div>
+        </div>
+
+        {{-- Salidas y Activas --}}
+        <div class="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
+            <h3 class="text-xl font-bold text-zinc-900 dark:text-white mb-4 flex items-center gap-2">
+                <flux:icon name="arrow-left-start-on-rectangle" class="size-5 text-orange-500" />
+                Huéspedes Activos / Salidas
+            </h3>
+            
+            <div class="space-y-4">
+                @forelse(collect($reservations)->filter(fn($r) => $r->status === 'checked_in') as $res)
+                    <div class="flex items-center justify-between p-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-100 dark:border-zinc-700">
+                        <div>
+                            <p class="font-bold text-zinc-900 dark:text-white">{{ $res->guest_name }}</p>
+                            <p class="text-sm text-zinc-500 dark:text-zinc-400">{{ $res->unit->name ?? 'N/A' }} • Salida: {{ \Carbon\Carbon::parse($res->check_out)->format('d/m/Y') }}</p>
+                        </div>
+                        <button wire:click="checkOut({{ $res->id }})" class="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl transition-colors shadow-sm">
+                            Check-Out
+                        </button>
+                    </div>
+                @empty
+                    <p class="text-zinc-500 text-sm py-4 text-center">No hay huéspedes activos en este momento.</p>
+                @endforelse
+            </div>
+        </div>
+    </div>
+
+    <flux:modal name="new-reservation" class="md:w-full md:max-w-xl">
+        <div class="p-6">
+            <h2 class="text-2xl font-bold mb-6 text-zinc-900 dark:text-white">Nueva Reservación</h2>
+            
+            <form wire:submit.prevent="createReservation" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Huésped</label>
+                    <flux:input wire:model="guest_name" placeholder="Nombre completo" required />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Teléfono</label>
+                    <flux:input wire:model="guest_phone" placeholder="Teléfono de contacto" />
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Unidad</label>
+                    <flux:select wire:model="unit_id" placeholder="Seleccione una unidad..." required>
+                        @foreach($units as $u)
+                            <flux:select.option value="{{ $u->id }}">{{ $u->name }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Check-in</label>
+                        <flux:input type="date" wire:model="check_in" required />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Check-out</label>
+                        <flux:input type="date" wire:model="check_out" required />
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Monto Total</label>
+                    <flux:input type="number" wire:model="total_amount" placeholder="0.00" step="0.01" />
+                </div>
+
+                <div class="flex justify-end gap-3 mt-6">
+                    <flux:modal.close>
+                        <button type="button" class="px-5 py-2.5 rounded-xl font-bold text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors">
+                            Cancelar
+                        </button>
+                    </flux:modal.close>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl font-bold text-white bg-[#4a5d41] hover:bg-[#3d4d35] transition-colors shadow-lg shadow-brand-green/20">
+                        Guardar Reservación
+                    </button>
+                </div>
+            </form>
+        </div>
+    </flux:modal>
+</div>
