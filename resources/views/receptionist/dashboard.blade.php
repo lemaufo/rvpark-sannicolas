@@ -7,40 +7,6 @@
             </div>
         </div>
 
-        {{-- Stats Grid --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10">
-            @php
-                $stats = [
-                    ['label' => 'Entradas Hoy', 'value' => '3', 'sub' => '2 pendientes', 'icon' => 'arrow-right-start-on-rectangle', 'color' => 'text-zinc-400', 'bg' => 'bg-zinc-50 dark:bg-zinc-800'],
-                    ['label' => 'Salidas Hoy', 'value' => '2', 'sub' => '1 pendiente', 'icon' => 'arrow-left-start-on-rectangle', 'color' => 'text-zinc-400', 'bg' => 'bg-zinc-50 dark:bg-zinc-800'],
-                    ['label' => 'Unidades Disponibles', 'value' => '5', 'sub' => 'de 28', 'icon' => 'home', 'color' => 'text-emerald-500', 'bg' => 'bg-emerald-50 dark:bg-emerald-900/30'],
-                ];
-            @endphp
-
-            @foreach($stats as $stat)
-                <div class="bg-white dark:bg-zinc-900 border border-zinc-200/60 dark:border-zinc-800 rounded-[2rem] p-7 shadow-sm hover:shadow-md transition-shadow duration-300 group">
-                    <div class="flex items-start justify-between">
-                        <div>
-                            <p class="text-zinc-400 dark:text-zinc-500 text-[13px] font-bold uppercase tracking-wider">{{ $stat['label'] }}</p>
-                            <h3 class="text-2xl font-black text-zinc-900 dark:text-white mt-2">{{ $stat['value'] }}</h3>
-                            @isset($stat['sub'])
-                                <p class="text-zinc-400 dark:text-zinc-500 text-xs font-bold mt-1.5">{{ $stat['sub'] }}</p>
-                            @endisset
-                        </div>
-                        <div class="p-4 {{ $stat['bg'] }} rounded-2xl group-hover:scale-110 transition-transform duration-300">
-                            <flux:icon :name="$stat['icon']" class="size-7 text-zinc-800 dark:text-zinc-200" />
-                        </div>
-                    </div>
-                </div>
-            @endforeach
-        </div>
-
-        {{-- Rol badge --}}
-        <div class="flex items-center gap-3 mb-8">
-            <span class="px-4 py-1.5 bg-zinc-700 dark:bg-zinc-800 text-white text-xs font-black uppercase tracking-widest rounded-full">
-                Recepcionista
-            </span>
-            <span class="text-zinc-400 dark:text-zinc-500 text-sm font-medium">Gestión de reservas y check-in</span>
-        </div>
+        <livewire:receptionist-panel />
     </div>
 </x-layouts.app>
