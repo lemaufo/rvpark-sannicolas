@@ -3,6 +3,7 @@
 use Livewire\Volt\Component;
 use App\Models\Reservation;
 use App\Models\Unit;
+use Livewire\Attributes\On;
 
 new class extends Component {
     public $reservations;
@@ -23,6 +24,7 @@ new class extends Component {
         $this->loadData();
     }
 
+    #[On('reservation-created')]
     public function loadData()
     {
         // Get today's arrivals
