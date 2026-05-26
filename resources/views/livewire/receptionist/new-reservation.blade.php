@@ -114,8 +114,8 @@ new class extends Component {
         $this->reset(['unit_id', 'guest_name', 'guest_phone', 'check_in', 'check_out', 'total_amount']);
         $this->showModal = false;
         
-        session()->flash('message', 'Reserva registrada con éxito.');
         $this->dispatch('reservation-created');
+        \Flux::modal('new-reservation')->close();
     }
 }; ?>
 
