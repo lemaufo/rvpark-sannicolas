@@ -124,6 +124,14 @@ new class extends Component {
 }; ?>
 
 <div class="space-y-8">
+    
+        {{-- Header --}}
+    <div class="mt-10 mb-8 flex items-end justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Inventario</h1>
+            <p class="text-zinc-500 dark:text-zinc-400 mt-1">Resumen para {{ now()->translatedFormat('l, d \d\e F Y') }}</p>
+        </div>
+    </div>
 
     {{-- Pendientes de limpieza alert --}}
     @php
