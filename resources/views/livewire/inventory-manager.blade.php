@@ -241,6 +241,7 @@ new class extends Component {
                 <!-- Actions -->
                 <div class="flex flex-col gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
                     @if(!$showReservationForm)
+                        @if(auth()->user()->hasRole('receptionist') || auth()->user()->hasRole('admin'))
                         <p class="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Acciones Rápidas</p>
                         
                         @if($su['status_raw'] !== 'available')
@@ -256,7 +257,7 @@ new class extends Component {
                                 Marcar para Limpieza
                             </button>
                         @endif
-                        
+                        @endif {{-- fin rol --}}
                         <div class="flex gap-3 mt-2">
                             @if($su['status_raw'] === 'available')
                                 <button wire:click="$set('showReservationForm', true)" class="flex-1 py-3 bg-[#4a5d41] text-white hover:bg-[#3a4a34] font-bold rounded-xl transition-colors shadow-lg shadow-brand-green/10">
