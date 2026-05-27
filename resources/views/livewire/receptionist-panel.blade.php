@@ -3,6 +3,7 @@
 use Livewire\Volt\Component;
 use App\Models\Reservation;
 use App\Models\Unit;
+use Livewire\Attributes\On;
 
 new class extends Component {
     public $reservations;
@@ -23,6 +24,7 @@ new class extends Component {
         $this->loadData();
     }
 
+    #[On('reservation-created')]
     public function loadData()
     {
         // Get today's arrivals
@@ -98,13 +100,11 @@ new class extends Component {
 
 <div class="space-y-8">
     {{-- Top Action --}}
-    <div class="flex justify-end mb-6 -mt-16">
-        <flux:modal.trigger name="new-reservation">
-            <button class="bg-[#4a5d41] text-white px-6 py-3 rounded-2xl font-bold shadow-xl shadow-brand-green/20 hover:scale-[1.02] transition-all duration-200 flex items-center gap-2.5">
-                <flux:icon name="plus" class="size-5" />
-                <span>Nueva Reserva</span>
-            </button>
-        </flux:modal.trigger>
+    <div class="flex justify-end mb-6 -mt-16 relative z-10">
+        <button x-data x-on:click="$flux.modal('new-reservation').show()" type="button" class="bg-[#4a5d41] text-white px-6 py-3 rounded-2xl font-bold shadow-xl shadow-brand-green/20 hover:scale-[1.02] transition-all duration-200 flex items-center gap-2.5">
+            <flux:icon name="plus" class="size-5" />
+            <span>Nueva Reserva</span>
+        </button>
     </div>
 
     {{-- Stats Grid --}}
@@ -153,7 +153,7 @@ new class extends Component {
     </div>
 
     {{-- Tabs or Sections for Operations --}}
-    <div class="grid grid-cols-1 xl:grid-cols-2 gap-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {{-- Entradas Pendientes --}}
         <div class="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
@@ -217,56 +217,6 @@ new class extends Component {
     </div>
 
     <flux:modal name="new-reservation" class="md:w-full md:max-w-xl">
-        <div class="p-6">
-            <h2 class="text-2xl font-bold mb-6 text-zinc-900 dark:text-white">Nueva Reservación</h2>
-            
-            <form wire:submit.prevent="createReservation" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Huésped</label>
-                    <flux:input wire:model="guest_name" placeholder="Nombre completo" required />
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Teléfono</label>
-                    <flux:input wire:model="guest_phone" placeholder="Teléfono de contacto" />
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Unidad</label>
-                    <flux:select wire:model="unit_id" placeholder="Seleccione una unidad..." required>
-                        @foreach($units as $u)
-                            <flux:select.option value="{{ $u->id }}">{{ $u->name }}</flux:select.option>
-                        @endforeach
-                    </flux:select>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Check-in</label>
-                        <flux:input type="date" wire:model="check_in" required />
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Check-out</label>
-                        <flux:input type="date" wire:model="check_out" required />
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Monto Total</label>
-                    <flux:input type="number" wire:model="total_amount" placeholder="0.00" step="0.01" />
-                </div>
-
-                <div class="flex justify-end gap-3 mt-6">
-                    <flux:modal.close>
-                        <button type="button" class="px-5 py-2.5 rounded-xl font-bold text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800 transition-colors">
-                            Cancelar
-                        </button>
-                    </flux:modal.close>
-                    <button type="submit" class="px-5 py-2.5 rounded-xl font-bold text-white bg-[#4a5d41] hover:bg-[#3d4d35] transition-colors shadow-lg shadow-brand-green/20">
-                        Guardar Reservación
-                    </button>
-                </div>
-            </form>
-        </div>
+        @livewire('receptionist.new-reservation')
     </flux:modal>
 </div>
