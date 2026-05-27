@@ -133,6 +133,14 @@ new class extends Component {
 }; ?>
 
 <div class="space-y-8">
+    
+        {{-- Header --}}
+    <div class="mt-10 mb-8 flex items-end justify-between">
+        <div>
+            <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Inventario</h1>
+            <p class="text-zinc-500 dark:text-zinc-400 mt-1">Resumen para {{ now()->translatedFormat('l, d \d\e F Y') }}</p>
+        </div>
+    </div>
 
     {{-- Pendientes de limpieza alert --}}
     @php
@@ -287,7 +295,9 @@ new class extends Component {
 
                 <!-- Actions -->
                 <div class="flex flex-col gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                    @if (!$showReservationForm)
+                    @if(!$showReservationForm)
+                        @if(auth()->user()->hasRole('receptionist') || auth()->user()->hasRole('admin'))
+
                         <p class="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-1">Acciones Rápidas</p>
 
                         @if ($su['status_raw'] !== 'available')
@@ -305,7 +315,7 @@ new class extends Component {
                                 Marcar para Limpieza
                             </button>
                         @endif
-
+                        @endif {{-- fin rol --}}
                         <div class="flex gap-3 mt-2">
                             @if ($su['status_raw'] === 'available')
                                 <button wire:click="$set('showReservationForm', true)"
