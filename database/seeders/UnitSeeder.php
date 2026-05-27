@@ -44,6 +44,12 @@ class UnitSeeder extends Seeder
             'notes' => 'Ubicación tranquila, alejada del ruido de la carretera.'
         ]);
         Unit::create([
+            'name' => 'RV 3',
+            'type' => 'rv',
+            'status' => 'available',
+            'notes' => 'Conexiones completas de agua y electricidad 50 AMP.'
+        ]);
+        Unit::create([
             'name' => 'Camping 1',
             'type' => 'camping',
             'status' => 'available',
