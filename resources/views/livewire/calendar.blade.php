@@ -12,7 +12,8 @@ new class extends Component {
 
     public function mount()
     {
-        $service = new ReservationService();
+        $service = app(ReservationService::class);
+
         $this->events = $service->getReservationsForCalendar();
 
         $today = Carbon::today()->toDateString();
