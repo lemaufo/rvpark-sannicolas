@@ -112,7 +112,7 @@ new class extends Component {
         @php
             $todayArrivals = collect($reservations)->filter(fn($r) => \Carbon\Carbon::parse($r->check_in)->isToday() && in_array($r->status, ['pending', 'confirmed']))->count();
             $todayDepartures = collect($reservations)->filter(fn($r) => \Carbon\Carbon::parse($r->check_out)->isToday() && $r->status === 'checked_in')->count();
-            $availableUnits = count($units) - collect($reservations)->filter(fn($r) => $r->status === 'checked_in')->count();
+            $availableUnits = collect($units)->filter(fn($u) => $u->status === 'available')->count();
         @endphp
         
         <div class="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-[2rem] p-7 shadow-sm">
