@@ -102,7 +102,7 @@ class ReservationService
                 'id' => 'real_' . $res->id,
                 'title' => $res->guest_name,
                 'start' => $res->check_in,
-                'end' => $res->check_out,
+                'end' => Carbon::parse($res->check_out)->addDay()->toDateString(),
                 'allDay' => true,
                 'extendedProps' => [
                     'is_mock' => false,

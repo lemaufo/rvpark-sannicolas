@@ -36,42 +36,13 @@ new class extends Component {
                 'type' => $e['extendedProps']['unit_type'],
             ])->toArray();
 
-        // Fallbacks for demonstration in case there's no check-in/out today
-        if (empty($this->entradasHoy)) {
-            $this->entradasHoy[] = [
-                'guest' => 'Anderson, K.',
-                'unit' => 'Bungalow Superior A1',
-                'type' => 'bungalow'
-            ];
-        }
-        if (empty($this->salidasHoy)) {
-            $this->salidasHoy[] = [
-                'guest' => 'Familia García',
-                'unit' => 'RV 1',
-                'type' => 'rv'
-            ];
-            $this->salidasHoy[] = [
-                'guest' => 'Familia Taylor',
-                'unit' => 'Camping 1',
-                'type' => 'camping'
-            ];
-        }
-
-        // Stats calculation based on all events
+        // Stats calculation based on real events
         $total = count($this->events);
+        
+        // As there is no origin field in the database yet, we set these to 0
         $directas = 0;
         $telefono = 0;
         $web = 0;
-
-        foreach ($this->events as $idx => $e) {
-            if ($idx % 3 === 0) {
-                $directas++;
-            } elseif ($idx % 3 === 1) {
-                $telefono++;
-            } else {
-                $web++;
-            }
-        }
 
         $this->estadisticas = [
             'total' => $total,
@@ -123,12 +94,16 @@ new class extends Component {
                 </span>
             </div>
             <div class="space-y-3 overflow-y-auto flex-1 max-h-[150px] pr-1">
-                @foreach($entradasHoy as $item)
+                @forelse($entradasHoy as $item)
                     <div class="bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-2xl flex flex-col gap-0.5 border border-zinc-100 dark:border-zinc-800/80">
                         <span class="font-bold text-zinc-800 dark:text-zinc-200 text-sm">{{ $item['guest'] }}</span>
                         <span class="text-zinc-500 dark:text-zinc-400 text-xs">{{ $item['unit'] }}</span>
                     </div>
-                @endforeach
+                @empty
+                    <div class="flex flex-col items-center justify-center h-full text-zinc-400 dark:text-zinc-500 py-4">
+                        <span class="text-sm font-medium">No hay entradas hoy</span>
+                    </div>
+                @endforelse
             </div>
         </div>
 
@@ -141,12 +116,16 @@ new class extends Component {
                 </span>
             </div>
             <div class="space-y-3 overflow-y-auto flex-1 max-h-[150px] pr-1">
-                @foreach($salidasHoy as $item)
+                @forelse($salidasHoy as $item)
                     <div class="bg-zinc-50 dark:bg-zinc-800/50 p-3 rounded-2xl flex flex-col gap-0.5 border border-zinc-100 dark:border-zinc-800/80">
                         <span class="font-bold text-zinc-800 dark:text-zinc-200 text-sm">{{ $item['guest'] }}</span>
                         <span class="text-zinc-500 dark:text-zinc-400 text-xs">{{ $item['unit'] }}</span>
                     </div>
-                @endforeach
+                @empty
+                    <div class="flex flex-col items-center justify-center h-full text-zinc-400 dark:text-zinc-500 py-4">
+                        <span class="text-sm font-medium">No hay salidas hoy</span>
+                    </div>
+                @endforelse
             </div>
         </div>
 
@@ -441,16 +420,6 @@ new class extends Component {
         }
         .fc th, .fc td {
             min-width: 0 !important;
-            overflow: hidden !important;
-        }
-        .fc .fc-daygrid-day-frame {
-            position: relative !important;
-            overflow: hidden !important;
-            min-height: 80px !important;
-        }
-        .fc .fc-daygrid-event-harness {
-            overflow: hidden !important;
-            max-width: 100% !important;
         }
 
         /* Event pill styling */
@@ -500,32 +469,71 @@ new class extends Component {
             background-color: #373e30 !important;
         }
         
-        /* Hide scrollbars on popover */
+        /* Solid background for popover to prevent overlapping visually */
         .fc-more-popover {
-            border-radius: 1.5rem !important;
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05) !important;
+            border-radius: 2rem !important; /* Adapted to be slightly smaller than 2.5rem of the main modal */
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
             border: 1px solid #e4e4e7 !important;
             overflow: hidden !important;
+            background-color: #ffffff !important;
+            z-index: 50 !important;
+            width: 260px !important; /* Adapted size (half) */
         }
         .dark .fc-more-popover {
             border: 1px solid #27272a !important;
             background-color: #18181b !important;
         }
         
+        /* Header matching Detalle Modal */
         .fc-more-popover .fc-popover-header {
-            background-color: #fafafa !important;
-            font-weight: 750 !important;
-            color: #27272a !important;
-            padding: 10px 14px !important;
+            background-color: #f8fafc !important; /* bg-zinc-50 */
+            border-bottom: 1px solid #f4f4f5 !important; /* border-zinc-100 */
+            padding: 16px 20px !important;
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
         }
         .dark .fc-more-popover .fc-popover-header {
-            background-color: #1c1c1f !important;
-            color: #f4f4f5 !important;
+            background-color: rgba(24, 24, 27, 0.4) !important; /* bg-zinc-900/40 */
+            border-bottom: 1px solid #27272a !important; /* border-zinc-800 */
+        }
+
+        /* Header Title */
+        .fc-more-popover .fc-popover-title {
+            font-size: 1.05rem !important;
+            font-weight: 900 !important;
+            color: #18181b !important;
+            letter-spacing: -0.025em !important;
+        }
+        .dark .fc-more-popover .fc-popover-title {
+            color: #ffffff !important;
+        }
+
+        /* Close Button matching modal style */
+        .fc-more-popover .fc-popover-close {
+            opacity: 1 !important;
+            color: #a1a1aa !important; /* text-zinc-400 */
+            background: transparent !important;
+            border-radius: 9999px !important;
+            padding: 6px !important;
+            transition: all 0.2s !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+        .fc-more-popover .fc-popover-close:hover {
+            color: #52525b !important; /* hover:text-zinc-600 */
+            background-color: rgba(228, 228, 231, 0.5) !important; /* hover:bg-zinc-200/50 */
+        }
+        .dark .fc-more-popover .fc-popover-close:hover {
+            color: #e4e4e7 !important; /* hover:text-zinc-200 */
+            background-color: #27272a !important; /* hover:bg-zinc-800 */
         }
         
+        /* Body */
         .fc-more-popover .fc-popover-body {
-            padding: 12px !important;
-            max-height: 250px;
+            padding: 16px 20px !important;
+            max-height: 280px;
             overflow-y: auto;
             background-color: #ffffff;
         }
@@ -581,9 +589,18 @@ new class extends Component {
                         locale: 'es',
                         firstDay: 0, // Domingo
                         headerToolbar: false, // Custom header handled via Alpine
-                        dayMaxEvents: 2, // Max 2 events per day cell, showing "+X más"
+                        views: {
+                            dayGridMonth: {
+                                dayMaxEvents: 3
+                            },
+                            dayGridWeek: {
+                                dayMaxEvents: false
+                            }
+                        },
+                        moreLinkText: 'Más', // Override default "more" text
                         eventDisplay: 'block', // Force events to act as blocks and respect boundaries
                         events: this.events,
+                        eventOrder: 'end,start,title', // Custom order: Earliest checkout first, then earliest checkin
                         editable: false,
                         selectable: false,
                         height: 'auto',
@@ -622,6 +639,9 @@ new class extends Component {
                     this.calendar.render();
                     this.currentTitle = this.calendar.view.title;
 
+                    // Setup delegated hover listeners and popover position fixes
+                    this.setupPopoverEnhancements();
+
                     // Force update size after render to resolve Tailwind grid conflicts.
                     // 150ms ensures Tailwind's styles are fully applied before FullCalendar
                     // re-measures all column widths.
@@ -652,6 +672,91 @@ new class extends Component {
                         this.calendar.changeView(viewName);
                         this.currentTitle = this.calendar.view.title;
                     }
+                },
+
+                setupPopoverEnhancements() {
+                    const closePopover = () => {
+                        const closeBtn = document.querySelector('.fc-popover-close');
+                        if (closeBtn) closeBtn.click();
+                        else document.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                    };
+
+                    // Delegated Hover Logic
+                    document.addEventListener('mouseover', (e) => {
+                        const moreLink = e.target.closest('.fc-daygrid-more-link');
+                        const popover = e.target.closest('.fc-more-popover');
+
+                        if (moreLink || popover) {
+                            clearTimeout(window.fcHoverTimeout);
+                            
+                            if (moreLink) {
+                                const openPopovers = document.querySelectorAll('.fc-more-popover');
+                                
+                                // Si no hay popovers, o si pasamos a un botón diferente
+                                if (openPopovers.length === 0 || window.currentOpenMoreLink !== moreLink) {
+                                    // Forzar el cierre de cualquier popover abierto antes de abrir el nuevo
+                                    if (openPopovers.length > 0) {
+                                        openPopovers.forEach(popoverNode => {
+                                            const closeBtn = popoverNode.querySelector('.fc-popover-close');
+                                            if (closeBtn) closeBtn.click();
+                                        });
+                                    }
+                                    
+                                    moreLink.click();
+                                    window.currentOpenMoreLink = moreLink;
+                                }
+                            }
+                        }
+                    });
+
+                    document.addEventListener('mouseout', (e) => {
+                        const leavingMoreLink = e.target.closest('.fc-daygrid-more-link');
+                        const leavingPopover = e.target.closest('.fc-more-popover');
+
+                        if (leavingMoreLink && !leavingMoreLink.contains(e.relatedTarget)) {
+                            window.fcHoverTimeout = setTimeout(closePopover, 200);
+                        } else if (leavingPopover && !leavingPopover.contains(e.relatedTarget)) {
+                            window.fcHoverTimeout = setTimeout(closePopover, 200);
+                        }
+                    });
+
+                    // Popover Position Fix (Prevent cutting off at the bottom)
+                    const observer = new MutationObserver((mutations) => {
+                        for (const mutation of mutations) {
+                            for (const node of mutation.addedNodes) {
+                                if (node.nodeType === 1 && node.classList.contains('fc-more-popover')) {
+                                    const calendarEl = document.getElementById('calendar-el');
+                                    if (!calendarEl) return;
+                                    
+                                    // Give browser a frame to calculate FullCalendar's inline styles
+                                    setTimeout(() => {
+                                        const calendarRect = calendarEl.getBoundingClientRect();
+                                        const popoverRect = node.getBoundingClientRect();
+                                        
+                                        let shiftX = 0;
+                                        let shiftY = 0;
+
+                                        // Fix Bottom Overflow (20px padding)
+                                        if (popoverRect.bottom > calendarRect.bottom) {
+                                            shiftY = popoverRect.bottom - calendarRect.bottom + 20;
+                                        }
+
+                                        // Fix Right Overflow (32px / 2rem padding requested)
+                                        if (popoverRect.right > calendarRect.right) {
+                                            shiftX = popoverRect.right - calendarRect.right + 32;
+                                        }
+
+                                        if (shiftX > 0 || shiftY > 0) {
+                                            node.style.transform = `translate(-${shiftX}px, -${shiftY}px)`;
+                                            node.style.transition = 'transform 0.15s ease-out';
+                                        }
+                                    }, 10);
+                                }
+                            }
+                        }
+                    });
+                    
+                    observer.observe(document.body, { childList: true, subtree: true });
                 },
 
                 openEventDetails(event) {
