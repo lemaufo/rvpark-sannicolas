@@ -41,6 +41,9 @@ class DashboardController extends Controller
             ->with('unit')
             ->get();
 
+        // ── Ocupaciones en vivo ───────────────────────────────────────────────
+        $ocupacionesEnVivo = Unit::where('status', 'occupied')->get();
+
         // ── Estadísticas de canales ───────────────────────────────────────────
         // Placeholders en 0 — el campo 'source' aún no existe en la BD.
         $statsDirectas = 0;
@@ -56,6 +59,7 @@ class DashboardController extends Controller
             'totalDisponibles',
             'checkinsHoy',
             'checkoutsHoy',
+            'ocupacionesEnVivo',
             'statsDirectas',
             'statsTelefono',
             'statsWeb',

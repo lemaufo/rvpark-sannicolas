@@ -56,41 +56,24 @@
         </div>
         
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {{-- Entradas de Hoy (Llegadas) --}}
-            @foreach($checkinsHoy as $reserva)
+            @foreach($ocupacionesEnVivo as $unidad)
                 <div class="p-6 border border-zinc-200/60 dark:border-zinc-800 rounded-3xl bg-zinc-50 dark:bg-zinc-800/50 flex justify-between items-start group hover:border-[#4a5d41]/30 dark:hover:border-[#4a5d41]/40 transition-colors">
                     <div>
-                        <h4 class="font-extrabold text-zinc-900 dark:text-white text-base">{{ $reserva->unit?->name ?? 'Bungalow Sin Asignar' }}</h4>
-                        <p class="text-xs text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-widest mt-0.5">{{ $reserva->unit?->type ?? 'Bungalow' }}</p>
-                        <span class="inline-block mt-4 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-black rounded-xl uppercase tracking-widest">Disponible / Entrada</span>
+                        <h4 class="font-extrabold text-zinc-900 dark:text-white text-base">{{ $unidad->name }}</h4>
+                        <p class="text-xs text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-widest mt-0.5">{{ $unidad->type }}</p>
+                        <span class="inline-block mt-4 px-3 py-1.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-black rounded-xl uppercase tracking-widest">Ocupado</span>
                         <div class="flex items-center gap-2 mt-4">
                             <div class="size-6 rounded-full bg-zinc-200 dark:bg-zinc-700 border-2 border-white dark:border-zinc-800"></div>
-                            <p class="text-xs text-zinc-600 dark:text-zinc-300 font-bold">{{ $reserva->guest_name }}</p>
-                        </div>
-                    </div>
-                    <div class="size-3 rounded-full bg-emerald-500 shadow-lg shadow-emerald-200 dark:shadow-none"></div>
-                </div>
-            @endforeach
-
-            {{-- Salidas de Hoy (Salidas) --}}
-            @foreach($checkoutsHoy as $reserva)
-                <div class="p-6 border border-zinc-200/60 dark:border-zinc-800 rounded-3xl bg-zinc-50 dark:bg-zinc-800/50 flex justify-between items-start group hover:border-[#4a5d41]/30 dark:hover:border-[#4a5d41]/40 transition-colors">
-                    <div>
-                        <h4 class="font-extrabold text-zinc-900 dark:text-white text-base">{{ $reserva->unit?->name ?? 'Bungalow Sin Asignar' }}</h4>
-                        <p class="text-xs text-zinc-400 dark:text-zinc-500 font-bold uppercase tracking-widest mt-0.5">{{ $reserva->unit?->type ?? 'Bungalow' }}</p>
-                        <span class="inline-block mt-4 px-3 py-1.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-black rounded-xl uppercase tracking-widest">Ocupado / Salida</span>
-                        <div class="flex items-center gap-2 mt-4">
-                            <div class="size-6 rounded-full bg-zinc-200 dark:bg-zinc-700 border-2 border-white dark:border-zinc-800"></div>
-                            <p class="text-xs text-zinc-600 dark:text-zinc-300 font-bold">{{ $reserva->guest_name }}</p>
+                            <p class="text-xs text-zinc-600 dark:text-zinc-300 font-bold">Huésped (Activo)</p>
                         </div>
                     </div>
                     <div class="size-3 rounded-full bg-red-500 shadow-lg shadow-red-200 dark:shadow-none"></div>
                 </div>
             @endforeach
 
-            @if($checkinsHoy->isEmpty() && $checkoutsHoy->isEmpty())
+            @if($ocupacionesEnVivo->isEmpty())
                 <div class="col-span-full py-8 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-700 rounded-3xl">
-                    <p class="text-zinc-500 dark:text-zinc-400 font-medium">No hay entradas ni salidas programadas para hoy.</p>
+                    <p class="text-zinc-500 dark:text-zinc-400 font-medium">No hay unidades ocupadas en este momento.</p>
                 </div>
             @endif
         </div>
