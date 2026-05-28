@@ -546,8 +546,8 @@ new class extends Component {
     </style>
 
     <script>
-        document.addEventListener('alpine:init', () => {
-            Alpine.data('calendarApp', (config) => ({
+        function calendarApp(config) {
+            return {
                 events: config.events,
                 viewMode: 'calendar',
                 currentTitle: '',
@@ -557,8 +557,17 @@ new class extends Component {
                 calendar: null,
 
                 init() {
+                    // Wait for FullCalendar to be loaded if navigating via wire:navigate
+                    const checkAndInit = () => {
+                        if (typeof FullCalendar !== 'undefined') {
+                            this.initCalendar();
+                        } else {
+                            setTimeout(checkAndInit, 50);
+                        }
+                    };
+                    
                     this.$nextTick(() => {
-                        this.initCalendar();
+                        checkAndInit();
                     });
                 },
 
@@ -663,7 +672,7 @@ new class extends Component {
                     };
                     this.showModal = true;
                 }
-            }));
-        });
+            };
+        }
     </script>
 </div>
