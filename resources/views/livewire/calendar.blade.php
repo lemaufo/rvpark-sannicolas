@@ -9,12 +9,46 @@ new class extends Component {
     public $entradasHoy = [];
     public $salidasHoy = [];
     public $estadisticas = [];
+    public $diasLlenos = [];
 
     public function mount()
     {
         $service = app(ReservationService::class);
 
-        $this->events = $service->getReservationsForCalendar();
+        $allEvents = $service->getReservationsForCalendar();
+
+        $totalUnits = \App\Models\Unit::count();
+        $dailyOccupancy = [];
+        
+        foreach ($allEvents as $e) {
+            // Ignorar las canceladas para calcular la ocupación real
+            if ($e['extendedProps']['status'] === 'cancelled') {
+                continue;
+            }
+            $checkIn = Carbon::parse($e['extendedProps']['check_in']);
+            $checkOut = Carbon::parse($e['extendedProps']['check_out']);
+            
+            // Si el check-in es igual al check-out no se cuenta como noche
+            if ($checkIn->lt($checkOut)) {
+                $period = \Carbon\CarbonPeriod::create($checkIn, $checkOut->copy()->subDay());
+                foreach ($period as $date) {
+                    $dateStr = $date->toDateString();
+                    $dailyOccupancy[$dateStr] = ($dailyOccupancy[$dateStr] ?? 0) + 1;
+                }
+            }
+        }
+        
+        foreach ($dailyOccupancy as $dateStr => $count) {
+            if ($totalUnits > 0 && $count >= $totalUnits) {
+                $this->diasLlenos[] = $dateStr;
+            }
+        }
+
+        // Mostrar solo reservaciones confirmadas/activas en el calendario visual
+        $this->events = collect($allEvents)->filter(function($e) {
+            $status = $e['extendedProps']['status'];
+            return in_array($status, ['confirmed', 'checked_in', 'checked_out']);
+        })->values()->toArray();
 
         $today = Carbon::today()->toDateString();
         
@@ -56,6 +90,7 @@ new class extends Component {
 
 <div x-data="calendarApp({ 
     events: @js($events),
+    diasLlenos: @js($diasLlenos),
     initialDate: '2026-05-27'
 })" class="space-y-8">
     {{-- Scripts for FullCalendar --}}
@@ -331,6 +366,145 @@ new class extends Component {
         </div>
     </div>
 
+    {{-- Day Detail Modal --}}
+    <div x-show="showDayModal"
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/60 backdrop-blur-sm"
+        x-transition:enter="ease-out duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="ease-in duration-200"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        x-cloak>
+
+        <div class="bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden flex flex-col border border-zinc-200 dark:border-zinc-800"
+            style="max-height: 90vh;"
+            @click.away="showDayModal = false"
+            x-transition:enter="ease-out duration-300"
+            x-transition:enter-start="opacity-0 scale-95"
+            x-transition:enter-end="opacity-100 scale-100"
+            x-transition:leave="ease-in duration-200"
+            x-transition:leave-start="opacity-100 scale-100"
+            x-transition:leave-end="opacity-0 scale-95">
+
+            {{-- Header --}}
+            <div class="px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900/40 shrink-0">
+                <h3 class="text-lg font-black text-zinc-900 dark:text-white capitalize"
+                    x-text="selectedDayData ? selectedDayData.dateFormatted : ''"></h3>
+                <button @click="showDayModal = false"
+                    class="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-200/50 dark:hover:bg-zinc-800 rounded-full transition-colors">
+                    <svg class="size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+
+            <template x-if="selectedDayData">
+                <div class="p-5 space-y-4 overflow-y-auto flex-1">
+
+                    {{-- Seccion: Entradas de hoy / esperadas / pasadas --}}
+                    <div>
+                        <div class="flex items-center gap-2 mb-2.5">
+                            <span class="size-2 rounded-full bg-emerald-500 shrink-0"></span>
+                            <span class="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest"
+                                x-text="selectedDayData.entradasLabel"></span>
+                            <span class="ml-auto text-xs font-bold text-emerald-600 dark:text-emerald-400"
+                                x-show="selectedDayData.entradas.length > 0"
+                                x-text="selectedDayData.entradas.length"></span>
+                        </div>
+
+                        <template x-if="selectedDayData.entradas.length === 0">
+                            <p class="text-sm text-zinc-400 dark:text-zinc-500 italic text-center py-3 bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl">Sin entradas</p>
+                        </template>
+
+                        <template x-if="selectedDayData.entradas.length > 0">
+                            {{-- max-height = 3 items × ~46px; scrollbar si hay mas --}}
+                            <div class="space-y-1.5 overflow-y-auto pr-0.5" style="max-height: 138px;">
+                                <template x-for="(item, i) in selectedDayData.entradas" :key="i">
+                                    <button
+                                        @click="openEntradaDetail(item)"
+                                        class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl border text-left cursor-pointer hover:brightness-95 transition-all active:scale-[0.98]"
+                                        :style="item.unit_type === 'bungalow'
+                                            ? 'background:#f0f4ee; border-color:#c8d9c4;'
+                                            : (item.unit_type === 'rv'
+                                                ? 'background:#e6f7f5; border-color:#9dd6d0;'
+                                                : 'background:#fef3e2; border-color:#f9d5a0;')">
+                                        <div class="size-6 rounded-full flex items-center justify-center shrink-0"
+                                            :style="item.unit_type === 'bungalow'
+                                                ? 'background:#4a5d41'
+                                                : (item.unit_type === 'rv'
+                                                    ? 'background:#0d9488'
+                                                    : 'background:#d97706')">
+                                            <svg class="size-3.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                                        </div>
+                                        <span class="font-semibold text-zinc-800 dark:text-zinc-200 text-sm truncate flex-1" x-text="item.name"></span>
+                                        {{-- Chevron indicador de clic --}}
+                                        <svg class="size-3.5 shrink-0 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+                                    </button>
+                                </template>
+                            </div>
+                        </template>
+                    </div>
+
+                    {{-- Divider --}}
+                    <div class="w-full h-px bg-zinc-100 dark:bg-zinc-800"></div>
+
+                    {{-- Seccion: Estancias vigentes --}}
+                    <div>
+                        <div class="flex items-center gap-2 mb-2.5">
+                            <span class="size-2 rounded-full bg-[#4a5d41] shrink-0"></span>
+                            <span class="text-xs font-black text-zinc-500 dark:text-zinc-400 uppercase tracking-widest">Estancias vigentes</span>
+                            <span class="ml-auto text-xs font-bold text-[#4a5d41] dark:text-emerald-400"
+                                x-show="selectedDayData.estancias.length > 0"
+                                x-text="selectedDayData.estancias.length"></span>
+                        </div>
+
+                        <template x-if="selectedDayData.estancias.length === 0">
+                            <p class="text-sm text-zinc-400 dark:text-zinc-500 italic text-center py-3 bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl">Sin estancias activas</p>
+                        </template>
+
+                        <template x-if="selectedDayData.estancias.length > 0">
+                            {{-- max-height = 3 items × ~46px = 138px; scrollbar si hay mas de 3 --}}
+                            <div class="overflow-y-auto" style="max-height: 138px;">
+                                <div class="space-y-1">
+                                    <template x-for="(item, i) in selectedDayData.estancias" :key="i">
+                                        <button
+                                            @click="openEntradaDetail(item)"
+                                            class="w-full flex items-center gap-2 px-3 py-2.5 rounded-2xl transition-all cursor-pointer hover:brightness-95 active:scale-[0.98] text-left"
+                                            :style="item.unit_type === 'bungalow'
+                                                ? 'background:#f0f4ee;'
+                                                : (item.unit_type === 'rv'
+                                                    ? 'background:#e6f7f5;'
+                                                    : 'background:#fef3e2;')">
+                                            {{-- Punto de color del tipo de unidad --}}
+                                            <span class="size-2 rounded-full shrink-0"
+                                                :style="item.unit_type === 'bungalow'
+                                                    ? 'background:#4a5d41'
+                                                    : (item.unit_type === 'rv'
+                                                        ? 'background:#0d9488'
+                                                        : 'background:#d97706')"></span>
+                                            {{-- Nombre truncado --}}
+                                            <span
+                                                class="font-semibold text-zinc-800 dark:text-zinc-200 text-sm truncate flex-1"
+                                                x-text="item.name">
+                                            </span>
+                                            {{-- Rango de fechas entrada - salida --}}
+                                            <span
+                                                class="shrink-0 text-xs font-bold text-zinc-500 tabular-nums"
+                                                x-text="item.checkinFormatted + ' - ' + item.checkoutFormatted">
+                                            </span>
+                                            {{-- Chevron indicador de clic --}}
+                                            <svg class="size-3.5 shrink-0 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" /></svg>
+                                        </button>
+                                    </template>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+
+                </div>
+            </template>
+        </div>
+    </div>
+
     {{-- Styling overrides for FullCalendar --}}
     <style>
         /* Modern light/dark border variables */
@@ -469,76 +643,10 @@ new class extends Component {
             background-color: #373e30 !important;
         }
         
-        /* Solid background for popover to prevent overlapping visually */
-        .fc-more-popover {
-            border-radius: 2rem !important; /* Adapted to be slightly smaller than 2.5rem of the main modal */
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
-            border: 1px solid #e4e4e7 !important;
-            overflow: hidden !important;
-            background-color: #ffffff !important;
-            z-index: 50 !important;
-            width: 260px !important; /* Adapted size (half) */
-        }
-        .dark .fc-more-popover {
-            border: 1px solid #27272a !important;
-            background-color: #18181b !important;
-        }
-        
-        /* Header matching Detalle Modal */
-        .fc-more-popover .fc-popover-header {
-            background-color: #f8fafc !important; /* bg-zinc-50 */
-            border-bottom: 1px solid #f4f4f5 !important; /* border-zinc-100 */
-            padding: 16px 20px !important;
-            display: flex !important;
-            justify-content: space-between !important;
-            align-items: center !important;
-        }
-        .dark .fc-more-popover .fc-popover-header {
-            background-color: rgba(24, 24, 27, 0.4) !important; /* bg-zinc-900/40 */
-            border-bottom: 1px solid #27272a !important; /* border-zinc-800 */
-        }
-
-        /* Header Title */
-        .fc-more-popover .fc-popover-title {
-            font-size: 1.05rem !important;
-            font-weight: 900 !important;
-            color: #18181b !important;
-            letter-spacing: -0.025em !important;
-        }
-        .dark .fc-more-popover .fc-popover-title {
-            color: #ffffff !important;
-        }
-
-        /* Close Button matching modal style */
-        .fc-more-popover .fc-popover-close {
-            opacity: 1 !important;
-            color: #a1a1aa !important; /* text-zinc-400 */
-            background: transparent !important;
-            border-radius: 9999px !important;
-            padding: 6px !important;
-            transition: all 0.2s !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-        }
-        .fc-more-popover .fc-popover-close:hover {
-            color: #52525b !important; /* hover:text-zinc-600 */
-            background-color: rgba(228, 228, 231, 0.5) !important; /* hover:bg-zinc-200/50 */
-        }
-        .dark .fc-more-popover .fc-popover-close:hover {
-            color: #e4e4e7 !important; /* hover:text-zinc-200 */
-            background-color: #27272a !important; /* hover:bg-zinc-800 */
-        }
-        
-        /* Body */
-        .fc-more-popover .fc-popover-body {
-            padding: 16px 20px !important;
-            max-height: 280px;
-            overflow-y: auto;
-            background-color: #ffffff;
-        }
-        .dark .fc-more-popover .fc-popover-body {
-            background-color: #18181b;
+        /* Suprimir completamente el popover nativo de FullCalendar.
+           Usamos nuestro propio modal personalizado en su lugar. */
+        .fc-popover {
+            display: none !important;
         }
         
         /* Hide time elements in events */
@@ -555,14 +663,17 @@ new class extends Component {
 
     <script>
         function calendarApp(config) {
+            let calendarInstance = null;
             return {
                 events: config.events,
+                diasLlenos: config.diasLlenos || [],
                 viewMode: 'calendar',
                 currentTitle: '',
                 currentView: 'dayGridMonth',
                 selectedEvent: null,
                 showModal: false,
-                calendar: null,
+                showDayModal: false,
+                selectedDayData: null,
 
                 init() {
                     // Wait for FullCalendar to be loaded if navigating via wire:navigate
@@ -583,7 +694,7 @@ new class extends Component {
                     const calendarEl = document.getElementById('calendar-el');
                     if (!calendarEl) return;
 
-                    this.calendar = new FullCalendar.Calendar(calendarEl, {
+                    calendarInstance = new FullCalendar.Calendar(calendarEl, {
                         initialView: this.currentView,
                         initialDate: config.initialDate,
                         locale: 'es',
@@ -591,7 +702,7 @@ new class extends Component {
                         headerToolbar: false, // Custom header handled via Alpine
                         views: {
                             dayGridMonth: {
-                                dayMaxEvents: 3
+                                dayMaxEvents: 2
                             },
                             dayGridWeek: {
                                 dayMaxEvents: false
@@ -600,7 +711,7 @@ new class extends Component {
                         moreLinkText: 'Más', // Override default "more" text
                         eventDisplay: 'block', // Force events to act as blocks and respect boundaries
                         events: this.events,
-                        eventOrder: 'end,start,title', // Custom order: Earliest checkout first, then earliest checkin
+                        eventOrder: 'end,duration,title', // Custom order: Earliest checkout first, then shortest stay
                         editable: false,
                         selectable: false,
                         height: 'auto',
@@ -612,6 +723,23 @@ new class extends Component {
                                 popover.style.display = 'none';
                             }
                             this.openEventDetails(info.event);
+                        },
+                        dayCellDidMount: (info) => {
+                            const llenos = config.diasLlenos || [];
+                            if (llenos.includes(info.dateStr)) {
+                                info.el.style.backgroundColor = '#fee2e2'; // Pale red (baito)
+                                
+                                const dayTop = info.el.querySelector('.fc-daygrid-day-top');
+                                if (dayTop) {
+                                    dayTop.style.display = 'flex';
+                                    dayTop.style.flexDirection = 'column';
+                                    
+                                    const badge = document.createElement('div');
+                                    badge.className = 'text-[9.5px] text-red-600/90 font-black uppercase mt-0.5 w-full text-center tracking-wider leading-none';
+                                    badge.innerText = 'Cupo lleno';
+                                    dayTop.appendChild(badge);
+                                }
+                            }
                         },
                         datesSet: (dateInfo) => {
                             this.currentTitle = dateInfo.view.title;
@@ -633,130 +761,140 @@ new class extends Component {
                             info.el.style.borderColor = border;
                             info.el.style.color = '#ffffff';
                             info.el.classList.add('text-xs', 'font-extrabold', 'shadow-sm', 'cursor-pointer');
+                        },
+                        moreLinkClick: (info) => {
+                            const d = info.date; // FullCalendar date is UTC midnight
+                            const dateStr = `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+                            this.openDayModal(dateStr);
+                            return false; // prevent native FullCalendar popover
+                        },
+                        dateClick: (info) => {
+                            this.openDayModal(info.dateStr);
                         }
                     });
                     
-                    this.calendar.render();
-                    this.currentTitle = this.calendar.view.title;
-
-                    // Setup delegated hover listeners and popover position fixes
-                    this.setupPopoverEnhancements();
+                    calendarInstance.render();
+                    this.currentTitle = calendarInstance.view.title;
 
                     // Force update size after render to resolve Tailwind grid conflicts.
-                    // 150ms ensures Tailwind's styles are fully applied before FullCalendar
-                    // re-measures all column widths.
                     setTimeout(() => {
-                        if (this.calendar) {
-                            this.calendar.updateSize();
+                        if (calendarInstance) {
+                            calendarInstance.updateSize();
                         }
                     }, 150);
                 },
 
                 prev() {
-                    if (this.calendar) {
-                        this.calendar.prev();
-                        this.currentTitle = this.calendar.view.title;
+                    if (calendarInstance) {
+                        calendarInstance.prev();
+                        this.currentTitle = calendarInstance.view.title;
                     }
                 },
 
                 next() {
-                    if (this.calendar) {
-                        this.calendar.next();
-                        this.currentTitle = this.calendar.view.title;
+                    if (calendarInstance) {
+                        calendarInstance.next();
+                        this.currentTitle = calendarInstance.view.title;
                     }
                 },
 
                 setView(viewName) {
                     this.currentView = viewName;
-                    if (this.calendar) {
-                        this.calendar.changeView(viewName);
-                        this.currentTitle = this.calendar.view.title;
+                    if (calendarInstance) {
+                        calendarInstance.changeView(viewName);
+                        this.currentTitle = calendarInstance.view.title;
                     }
                 },
 
-                setupPopoverEnhancements() {
-                    const closePopover = () => {
-                        const closeBtn = document.querySelector('.fc-popover-close');
-                        if (closeBtn) closeBtn.click();
-                        else document.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+                openDayModal(dateStr) {
+                    const events = this.events;
+
+                    // --- Etiqueta dinámica de la sección de entradas ---
+                    const todayStr = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD local
+                    let entradasLabel;
+                    if (dateStr === todayStr) {
+                        entradasLabel = 'Entradas de hoy';
+                    } else if (dateStr > todayStr) {
+                        entradasLabel = 'Entradas esperadas';
+                    } else {
+                        const [y, mo, da] = dateStr.split('-').map(Number);
+                        const fechaCorta = new Date(y, mo - 1, da)
+                            .toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
+                        entradasLabel = `Entradas del ${fechaCorta}`;
+                    }
+
+                    // Entradas: check_in === dateStr — guardar todos los datos para abrir detalle
+                    const entradas = events
+                        .filter(e => e.extendedProps && e.extendedProps.check_in === dateStr)
+                        .map(e => ({ 
+                            id: e.id,
+                            title: e.title,
+                            name: e.extendedProps.guest_name,
+                            unit_type: e.extendedProps.unit_type,
+                            check_in: e.extendedProps.check_in,
+                            check_out: e.extendedProps.check_out,
+                            guest_name: e.extendedProps.guest_name,
+                            guest_phone: e.extendedProps.guest_phone,
+                            unit_name: e.extendedProps.unit_name,
+                            total_amount: e.extendedProps.total_amount,
+                            status: e.extendedProps.status,
+                            expanded: false
+                        }));
+
+                    // Estancias vigentes: check_in < dateStr && dateStr <= check_out
+                    const estancias = events
+                        .filter(e => {
+                            if (!e.extendedProps) return false;
+                            // Ignorar estado; si cruza el dia y no es check_in de HOY, es estancia
+                            return e.extendedProps.check_in < dateStr && dateStr <= e.extendedProps.check_out;
+                        })
+                        .map(e => ({
+                            id: e.id,
+                            title: e.title,
+                            name: e.extendedProps.guest_name,
+                            unit_type: e.extendedProps.unit_type,
+                            check_in: e.extendedProps.check_in,
+                            check_out: e.extendedProps.check_out,
+                            guest_name: e.extendedProps.guest_name,
+                            guest_phone: e.extendedProps.guest_phone,
+                            unit_name: e.extendedProps.unit_name,
+                            total_amount: e.extendedProps.total_amount,
+                            status: e.extendedProps.status,
+                            checkinFormatted: this.formatDateShort(e.extendedProps.check_in),
+                            checkoutFormatted: this.formatDateShort(e.extendedProps.check_out)
+                        }));
+
+                    // Formatear fecha en español sin problemas de zona horaria
+                    const [y, m, d] = dateStr.split('-').map(Number);
+                    const dateFormatted = new Date(y, m - 1, d)
+                        .toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
+
+                    this.selectedDayData = { date: dateStr, dateFormatted, entradasLabel, entradas, estancias };
+                    this.showDayModal = true;
+                },
+
+                // Abre el modal de Detalle de Reserva desde una entrada en el day modal
+                openEntradaDetail(item) {
+                    this.showDayModal = false;
+                    this.selectedEvent = {
+                        id: item.id || '',
+                        title: item.title || item.guest_name,
+                        check_in: item.check_in,
+                        check_out: item.check_out,
+                        guest_name: item.guest_name,
+                        guest_phone: item.guest_phone,
+                        unit_name: item.unit_name,
+                        unit_type: item.unit_type,
+                        total_amount: item.total_amount,
+                        status: item.status
                     };
+                    this.showModal = true;
+                },
 
-                    // Delegated Hover Logic
-                    document.addEventListener('mouseover', (e) => {
-                        const moreLink = e.target.closest('.fc-daygrid-more-link');
-                        const popover = e.target.closest('.fc-more-popover');
-
-                        if (moreLink || popover) {
-                            clearTimeout(window.fcHoverTimeout);
-                            
-                            if (moreLink) {
-                                const openPopovers = document.querySelectorAll('.fc-more-popover');
-                                
-                                // Si no hay popovers, o si pasamos a un botón diferente
-                                if (openPopovers.length === 0 || window.currentOpenMoreLink !== moreLink) {
-                                    // Forzar el cierre de cualquier popover abierto antes de abrir el nuevo
-                                    if (openPopovers.length > 0) {
-                                        openPopovers.forEach(popoverNode => {
-                                            const closeBtn = popoverNode.querySelector('.fc-popover-close');
-                                            if (closeBtn) closeBtn.click();
-                                        });
-                                    }
-                                    
-                                    moreLink.click();
-                                    window.currentOpenMoreLink = moreLink;
-                                }
-                            }
-                        }
-                    });
-
-                    document.addEventListener('mouseout', (e) => {
-                        const leavingMoreLink = e.target.closest('.fc-daygrid-more-link');
-                        const leavingPopover = e.target.closest('.fc-more-popover');
-
-                        if (leavingMoreLink && !leavingMoreLink.contains(e.relatedTarget)) {
-                            window.fcHoverTimeout = setTimeout(closePopover, 200);
-                        } else if (leavingPopover && !leavingPopover.contains(e.relatedTarget)) {
-                            window.fcHoverTimeout = setTimeout(closePopover, 200);
-                        }
-                    });
-
-                    // Popover Position Fix (Prevent cutting off at the bottom)
-                    const observer = new MutationObserver((mutations) => {
-                        for (const mutation of mutations) {
-                            for (const node of mutation.addedNodes) {
-                                if (node.nodeType === 1 && node.classList.contains('fc-more-popover')) {
-                                    const calendarEl = document.getElementById('calendar-el');
-                                    if (!calendarEl) return;
-                                    
-                                    // Give browser a frame to calculate FullCalendar's inline styles
-                                    setTimeout(() => {
-                                        const calendarRect = calendarEl.getBoundingClientRect();
-                                        const popoverRect = node.getBoundingClientRect();
-                                        
-                                        let shiftX = 0;
-                                        let shiftY = 0;
-
-                                        // Fix Bottom Overflow (20px padding)
-                                        if (popoverRect.bottom > calendarRect.bottom) {
-                                            shiftY = popoverRect.bottom - calendarRect.bottom + 20;
-                                        }
-
-                                        // Fix Right Overflow (32px / 2rem padding requested)
-                                        if (popoverRect.right > calendarRect.right) {
-                                            shiftX = popoverRect.right - calendarRect.right + 32;
-                                        }
-
-                                        if (shiftX > 0 || shiftY > 0) {
-                                            node.style.transform = `translate(-${shiftX}px, -${shiftY}px)`;
-                                            node.style.transition = 'transform 0.15s ease-out';
-                                        }
-                                    }, 10);
-                                }
-                            }
-                        }
-                    });
-                    
-                    observer.observe(document.body, { childList: true, subtree: true });
+                formatDateShort(dateStr) {
+                    if (!dateStr) return '';
+                    const [year, month, day] = dateStr.split('-');
+                    return `${day}/${month}/${year}`;
                 },
 
                 openEventDetails(event) {
