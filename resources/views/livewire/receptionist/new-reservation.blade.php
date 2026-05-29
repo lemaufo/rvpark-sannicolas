@@ -107,7 +107,7 @@ new class extends Component {
             'guest_phone' => $this->guest_phone,
             'check_in' => $this->check_in,
             'check_out' => $this->check_out,
-            'status' => 'confirmed',
+            'status' => 'pending',
             'total_amount' => $this->total_amount
         ]);
         
@@ -158,16 +158,18 @@ new class extends Component {
 
             <div class="grid grid-cols-2 gap-6 mb-6">
                 <div>
-                    <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Check-in</label>
+                    <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Check-in (Fecha)</label>
                     <input type="date" wire:model.live="check_in" min="{{ date('Y-m-d') }}" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2.5">
                     @error('check_in') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Check-out</label>
+                    <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Check-out (Fecha)</label>
                     <input type="date" wire:model.live="check_out" min="{{ $check_in ? date('Y-m-d', strtotime($check_in . ' +1 day')) : date('Y-m-d', strtotime('+1 day')) }}" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2.5">
                     @error('check_out') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                 </div>
             </div>
+
+
 
             <div class="mb-6">
                 <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Nombre del Huésped</label>

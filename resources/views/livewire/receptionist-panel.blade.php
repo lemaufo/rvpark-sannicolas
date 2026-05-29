@@ -56,20 +56,15 @@ new class extends Component {
         \Flux::modal('new-reservation')->close();
     }
 
-    public function confirmReservation($id)
-    {
-        $res = Reservation::find($id);
-        if ($res && $res->status == 'pending') {
-            $res->update(['status' => 'confirmed']);
-            $this->loadData();
-        }
-    }
 
     public function checkIn($id)
     {
         $res = Reservation::find($id);
         if ($res && in_array($res->status, ['pending', 'confirmed'])) {
-            $res->update(['status' => 'checked_in']);
+            $res->update([
+                'status' => 'checked_in',
+                'check_in_time' => now()->format('H:i:s')
+            ]);
             
             // Sync unit status
             $unit = Unit::find($res->unit_id);
@@ -85,7 +80,10 @@ new class extends Component {
     {
         $res = Reservation::find($id);
         if ($res && $res->status == 'checked_in') {
-            $res->update(['status' => 'checked_out']);
+            $res->update([
+                'status' => 'checked_out',
+                'check_out_time' => now()->format('H:i:s')
+            ]);
             
             // Sync unit status to cleaning
             $unit = Unit::find($res->unit_id);
@@ -175,11 +173,6 @@ new class extends Component {
                             @endif
                         </div>
                         <div class="flex gap-2">
-                            @if($res->status == 'pending')
-                                <button wire:click="confirmReservation({{ $res->id }})" class="px-4 py-2 bg-zinc-200 dark:bg-zinc-700 hover:bg-zinc-300 dark:hover:bg-zinc-600 text-zinc-800 dark:text-zinc-200 text-sm font-bold rounded-xl transition-colors">
-                                    Confirmar
-                                </button>
-                            @endif
                             <button wire:click="checkIn({{ $res->id }})" class="px-4 py-2 bg-[#4a5d41] hover:bg-[#3d4d35] text-white text-sm font-bold rounded-xl transition-colors shadow-sm">
                                 Check-In
                             </button>
