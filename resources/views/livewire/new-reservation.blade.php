@@ -12,7 +12,10 @@ new class extends Component {
     public $guest_name = '';
     public $guest_phone = '';
     public $check_in = '';
+    public $check_in_time = '';
     public $check_out = '';
+    public $check_out_time = '';
+    public $status = 'confirmed';
     public $total_amount = 0;
     
     public $units = [];
@@ -91,7 +94,10 @@ new class extends Component {
             'guest_name' => 'required|string|max:120',
             'guest_phone' => 'required|string|max:20',
             'check_in' => 'required|date|before:check_out',
+            'check_in_time' => $this->status === 'confirmed' ? 'required|date_format:H:i' : 'nullable|date_format:H:i',
             'check_out' => 'required|date|after:check_in',
+            'check_out_time' => 'nullable|date_format:H:i',
+            'status' => 'required|in:pending,confirmed',
         ]);
         
         $this->checkAvailability();
@@ -106,12 +112,15 @@ new class extends Component {
             'guest_name' => $this->guest_name,
             'guest_phone' => $this->guest_phone,
             'check_in' => $this->check_in,
+            'check_in_time' => $this->status === 'confirmed' ? ($this->check_in_time ?: null) : null,
             'check_out' => $this->check_out,
-            'status' => 'confirmed',
+            'check_out_time' => $this->check_out_time ?: null,
+            'status' => $this->status,
             'total_amount' => $this->total_amount
         ]);
         
-        $this->reset(['unit_id', 'guest_name', 'guest_phone', 'check_in', 'check_out', 'total_amount']);
+        $this->reset(['unit_id', 'guest_name', 'guest_phone', 'check_in', 'check_in_time', 'check_out', 'check_out_time', 'status', 'total_amount']);
+        $this->status = 'confirmed'; // reset to default
         $this->showModal = false;
         
         session()->flash('message', 'Reserva registrada con éxito.');
@@ -171,16 +180,40 @@ new class extends Component {
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Check-in</label>
+                            <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Check-in (Fecha)</label>
                             <input type="date" wire:model.live="check_in" min="{{ date('Y-m-d') }}" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
                             @error('check_in') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Check-out</label>
+                            <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Check-out (Fecha)</label>
                             <input type="date" wire:model.live="check_out" min="{{ $check_in ? date('Y-m-d', strtotime($check_in . ' +1 day')) : date('Y-m-d', strtotime('+1 day')) }}" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
                             @error('check_out') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                         </div>
                     </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Estatus</label>
+                            <select wire:model.live="status" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
+                                <option value="pending">Pendiente</option>
+                                <option value="confirmed">Confirmada</option>
+                            </select>
+                            @error('status') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Hora de Salida</label>
+                            <input type="time" wire:model="check_out_time" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
+                            @error('check_out_time') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
+                        </div>
+                    </div>
+
+                    @if($status === 'confirmed')
+                    <div>
+                        <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Hora de Entrada</label>
+                        <input type="time" wire:model="check_in_time" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
+                        @error('check_in_time') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
+                    </div>
+                    @endif
 
                     <div>
                         <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Nombre del Huésped</label>

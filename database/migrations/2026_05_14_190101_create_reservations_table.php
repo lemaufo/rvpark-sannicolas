@@ -17,7 +17,9 @@ return new class extends Migration
             $table->string('guest_name', 120);
             $table->string('guest_phone', 20);
             $table->date('check_in');
+            $table->time('check_in_time')->nullable();
             $table->date('check_out');
+            $table->time('check_out_time')->nullable();
             $table->enum('status', ['pending', 'confirmed', 'checked_in', 'checked_out', 'cancelled'])->default('pending');
             $table->decimal('total_amount', 8, 2);
             $table->timestamps();
