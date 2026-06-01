@@ -3,15 +3,13 @@
 use Livewire\Volt\Component;
 use App\Models\Reservation;
 use App\Models\Unit;
+use App\Models\OperationalStatus;
 use Livewire\Attributes\On;
 
 new class extends Component {
     public $reservations;
     public $units;
 
-
-
-    // Form fields
     public $guest_name = '';
     public $guest_phone = '';
     public $unit_id = '';
@@ -27,7 +25,6 @@ new class extends Component {
     #[On('reservation-created')]
     public function loadData()
     {
-        // Get today's arrivals
         $this->reservations = Reservation::with('unit')->orderBy('check_in')->get();
         $this->units = Unit::all();
     }
@@ -56,22 +53,22 @@ new class extends Component {
         \Flux::modal('new-reservation')->close();
     }
 
-
     public function checkIn($id)
     {
         $res = Reservation::find($id);
         if ($res && in_array($res->status, ['pending', 'confirmed'])) {
-            $res->update([
-                'status' => 'checked_in',
-                'check_in_time' => now()->format('H:i:s')
-            ]);
-            
-            // Sync unit status
+            $res->update(['status' => 'checked_in']);
+
             $unit = Unit::find($res->unit_id);
             if ($unit) {
                 $unit->update(['status' => 'occupied']);
+                OperationalStatus::create([
+                    'unit_id' => $unit->id,
+                    'status' => 'occupied',
+                    'user_id' => auth()->id(),
+                    'changed_at' => now()
+                ]);
             }
-            
             $this->loadData();
         }
     }
@@ -80,17 +77,18 @@ new class extends Component {
     {
         $res = Reservation::find($id);
         if ($res && $res->status == 'checked_in') {
-            $res->update([
-                'status' => 'checked_out',
-                'check_out_time' => now()->format('H:i:s')
-            ]);
-            
-            // Sync unit status to cleaning
+            $res->update(['status' => 'checked_out']);
+
             $unit = Unit::find($res->unit_id);
             if ($unit) {
                 $unit->update(['status' => 'cleaning']);
+                OperationalStatus::create([
+                    'unit_id' => $unit->id,
+                    'status' => 'cleaning',
+                    'user_id' => auth()->id(),
+                    'changed_at' => now()
+                ]);
             }
-
             $this->loadData();
         }
     }
