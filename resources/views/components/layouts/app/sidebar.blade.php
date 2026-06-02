@@ -34,6 +34,7 @@
                     <flux:navlist.item icon="document-text" :href="route('registro')" :current="request()->routeIs('registro')" wire:navigate>Registro</flux:navlist.item>
                     
                     @if(auth()->user()->role === 'admin')
+                        <flux:navlist.item icon="chart-bar" :href="route('admin.reportes.index')" :current="request()->routeIs('admin.reportes*')" wire:navigate>Reportes</flux:navlist.item>
                         <flux:navlist.item icon="cog-6-tooth" :href="route('configuracion')" :current="request()->routeIs('configuracion')" wire:navigate>Configuración</flux:navlist.item>
                     @endif
                 </flux:navlist.group>

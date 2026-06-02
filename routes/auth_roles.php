@@ -35,8 +35,13 @@ Route::middleware(['auth', 'verified', 'role:admin'])
         })->name('usuarios.index');
 
 
-        // Aquí irán las rutas de Eduardo cuando estén listas
-        // Route::resource('/lotes', LoteController::class);
+        // ── Reportes ───────────────────────────────────────────────────────
+        Route::prefix('reportes')->name('reportes.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\ReportController::class, 'index'])->name('index');
+            Route::get('/ocupacion', [\App\Http\Controllers\ReportController::class, 'ocupacionPorDia'])->name('ocupacion');
+            Route::get('/historial', [\App\Http\Controllers\ReportController::class, 'historialReservaciones'])->name('historial');
+            Route::get('/exportar-csv', [\App\Http\Controllers\ReportController::class, 'exportarCSV'])->name('exportar');
+        });
     });
 
 
