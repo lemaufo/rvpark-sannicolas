@@ -16,7 +16,8 @@ class Reservation extends Model
         'check_out',
         'check_out_time',
         'status',
-        'total_amount'
+        'total_amount',
+        'cancel_reason'
     ];
 
     // Una reserva pertenece a una unidad

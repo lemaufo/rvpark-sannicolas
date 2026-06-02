@@ -71,10 +71,13 @@ class ReservationService
         });
     }
 
-    public function cancelReservation(Reservation $reservation, $userId)
+    public function cancelReservation(Reservation $reservation, $userId, $reason = null)
     {
-        return DB::transaction(function () use ($reservation, $userId) {
-            $reservation->update(['status' => 'cancelled']);
+        return DB::transaction(function () use ($reservation, $userId, $reason) {
+            $reservation->update([
+                'status' => 'cancelled',
+                'cancel_reason' => $reason
+            ]);
 
             $unit = $reservation->unit;
             if ($unit->status === 'occupied') {
