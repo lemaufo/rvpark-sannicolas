@@ -57,13 +57,13 @@ new class extends Component {
         {{-- Tipo --}}
         <div class="mb-6">
             <p class="text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-3">Tipo de Unidad</p>
-            <div class="grid grid-cols-3 gap-3">
+            <div class="grid grid-cols-3 gap-2 sm:gap-3">
                 @foreach(['bungalow' => ['label' => 'Bungalow', 'icon' => 'home'], 'rv' => ['label' => 'RV Spot', 'icon' => 'bolt'], 'camping' => ['label' => 'Camping', 'icon' => 'map-pin']] as $key => $item)
                     <button type="button" wire:click="$set('type', '{{ $key }}')"
-                        class="flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition
+                        class="flex flex-col items-center justify-center gap-1.5 sm:gap-2 p-2 sm:p-4 rounded-xl sm:rounded-2xl border-2 transition
                             {{ $type === $key ? 'border-[#4a5d41] bg-[#4a5d41]/5 text-[#4a5d41]' : 'border-zinc-200 dark:border-zinc-700 text-zinc-500 hover:border-zinc-300' }}">
-                        <flux:icon name="{{ $item['icon'] }}" class="size-7" />
-                        <span class="text-sm font-bold">{{ $item['label'] }}</span>
+                        <flux:icon name="{{ $item['icon'] }}" class="size-6 sm:size-7 shrink-0" />
+                        <span class="text-[11px] sm:text-sm font-bold truncate w-full text-center leading-tight">{{ $item['label'] }}</span>
                     </button>
                 @endforeach
             </div>
