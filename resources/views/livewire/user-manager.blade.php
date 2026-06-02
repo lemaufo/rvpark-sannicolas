@@ -14,6 +14,7 @@ new class extends Component {
     public $role = 'receptionist';
 
     public $editingUserId = null;
+    public $isEditingAdmin = false;
     public $modalTitle = 'Nuevo Usuario';
 
     public function mount()
@@ -29,7 +30,7 @@ new class extends Component {
     // Abre modal para CREAR
     public function openCreateModal()
     {
-        $this->reset(['name', 'email', 'password', 'editingUserId']);
+        $this->reset(['name', 'email', 'password', 'editingUserId', 'isEditingAdmin']);
         $this->resetValidation();
         $this->role = 'receptionist';
         $this->modalTitle = 'Nuevo Usuario';
@@ -51,6 +52,7 @@ new class extends Component {
         $this->email = $user->email;
         $this->password = ''; // No mostrar contraseña
         $this->role = $user->role;
+        $this->isEditingAdmin = ($user->role === 'admin');
         $this->modalTitle = 'Editar Usuario';
 
         \Flux::modal('create-user')->show();
@@ -94,7 +96,12 @@ new class extends Component {
         }
 
         if ($this->editingUserId) {
-            User::find($this->editingUserId)->update($data);
+            $existingUser = User::find($this->editingUserId);
+            if ($existingUser && $existingUser->role === 'admin') {
+                $data['role'] = 'admin'; // Forzar rol admin
+                unset($data['password']); // Evitar actualizar contraseña de admin
+            }
+            $existingUser->update($data);
             session()->flash('message', 'Usuario actualizado correctamente.');
         } else {
             User::create($data);
@@ -102,7 +109,7 @@ new class extends Component {
         }
 
         $this->loadUsers();
-        $this->reset(['name', 'email', 'password', 'editingUserId']);
+        $this->reset(['name', 'email', 'password', 'editingUserId', 'isEditingAdmin']);
         $this->resetValidation();
 
         \Flux::modal('create-user')->close();
@@ -111,7 +118,7 @@ new class extends Component {
     public function resetUserPassword($userId)
     {
         $user = User::find($userId);
-        if (!$user) {
+        if (!$user || $user->role === 'admin') {
             return;
         }
 
@@ -206,11 +213,13 @@ new class extends Component {
                                     </button>
 
                                     {{-- Botón Reset Contraseña --}}
-                                    <button wire:click="resetUserPassword({{ $user['id'] }})"
-                                        wire:confirm="¿Estás seguro de restablecer la contraseña de {{ $user['name'] }}?"
-                                        class="px-3 py-1.5 border border-[#4a5d41]/20 text-[#4a5d41] rounded-xl text-sm font-medium hover:bg-[#4a5d41] hover:text-white transition">
-                                        Restablecer Contraseña
-                                    </button>
+                                    @if ($user['role'] !== 'admin')
+                                        <button wire:click="resetUserPassword({{ $user['id'] }})"
+                                            wire:confirm="¿Estás seguro de restablecer la contraseña de {{ $user['name'] }}?"
+                                            class="px-3 py-1.5 border border-[#4a5d41]/20 text-[#4a5d41] rounded-xl text-sm font-medium hover:bg-[#4a5d41] hover:text-white transition">
+                                            Restablecer Contraseña
+                                        </button>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -238,19 +247,21 @@ new class extends Component {
 
                 <flux:input wire:model="email" type="email" label="Correo" placeholder="correo@ejemplo.com" />
 
-                <flux:input wire:model="password" type="password"
-                    label="{{ $editingUserId ? 'Nueva Contraseña (dejar vacío para no cambiar)' : 'Contraseña' }}" />
+                @if (!$isEditingAdmin)
+                    <flux:input wire:model="password" type="password"
+                        label="{{ $editingUserId ? 'Nueva Contraseña (dejar vacío para no cambiar)' : 'Contraseña' }}" />
 
-                <div>
-                    <label class="block mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                        Rol
-                    </label>
-                    <select wire:model="role"
-                        class="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-3">
-                        <option value="receptionist">Recepcionista</option>
-                        <option value="admin">Administrador</option>
-                    </select>
-                </div>
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                            Rol
+                        </label>
+                        <select wire:model="role"
+                            class="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-3">
+                            <option value="receptionist">Recepcionista</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                    </div>
+                @endif
 
                 <div class="flex justify-end gap-3 pt-4">
                     <flux:modal.close>

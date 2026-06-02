@@ -48,8 +48,7 @@
                         :current="request()->routeIs('admin.usuarios.*')" wire:navigate>
                         Usuarios
                     </flux:navlist.item>
-                    <flux:navlist.item icon="cog-6-tooth" :href="route('configuracion')"
-                        :current="request()->routeIs('configuracion')" wire:navigate>Configuración</flux:navlist.item>
+
                 @endif
             </flux:navlist.group>
         </flux:navlist>
