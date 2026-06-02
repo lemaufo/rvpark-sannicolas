@@ -43,6 +43,34 @@
         @apply bg-brand-green text-white shadow-sm;
     }
 
+    /* Ocultar scrollbar solo en móviles (para el carrusel horizontal) */
+    @media (max-width: 1279px) {
+        .mobile-hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .mobile-hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    }
+
+    /* Scrollbar estilizado para desktop */
+    @media (min-width: 1280px) {
+        .desktop-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .desktop-scrollbar::-webkit-scrollbar-track {
+            background: transparent; 
+        }
+        .desktop-scrollbar::-webkit-scrollbar-thumb {
+            background-color: #525252; /* zinc-600 */
+            border-radius: 10px;
+        }
+        .desktop-scrollbar::-webkit-scrollbar-thumb:hover {
+            background-color: #737373; /* zinc-500 */
+        }
+    }
+
     .sidebar-item-hover {
         @apply hover:bg-zinc-100 transition-colors duration-200;
     }
