@@ -3,6 +3,7 @@
 use Livewire\Volt\Component;
 use App\Services\ReservationService;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Log;
 
 new class extends Component {
     public $events = [];
@@ -10,8 +11,15 @@ new class extends Component {
     public $salidasHoy = [];
     public $estadisticas = [];
     public $diasLlenos = [];
+    
+    public $allReservations = [];
 
     public function mount()
+    {
+        $this->loadData();
+    }
+
+    public function loadData()
     {
         $service = app(ReservationService::class);
 
@@ -84,6 +92,52 @@ new class extends Component {
             'telefono' => $telefono,
             'web' => $web,
         ];
+        
+        // Load data for the List View
+        $role = auth()->user() ? auth()->user()->role : 'receptionist';
+        $reservationsForList = \App\Models\Reservation::with('unit')->orderBy('check_in', 'desc')->get();
+        
+        if ($role !== 'admin') {
+            $reservationsForList = $reservationsForList->filter(function($r) use ($today) {
+                return $r->check_in >= $today || in_array($r->status, ['checked_in']);
+            });
+        }
+        
+        $this->allReservations = $reservationsForList->map(function($r) {
+            // Simulated origin (direct, web, phone) since db doesn't have it
+            $origins = ['Directo', 'Web', 'Teléfono'];
+            $origin = $origins[$r->id % 3];
+            
+            return [
+                'id' => $r->id,
+                'guest_name' => $r->guest_name,
+                'guest_phone' => $r->guest_phone,
+                'unit_name' => $r->unit ? $r->unit->name : 'N/A',
+                'unit_type' => $r->unit ? strtolower($r->unit->type) : 'bungalow',
+                'check_in' => $r->check_in,
+                'check_in_time' => $r->check_in_time,
+                'check_out' => $r->check_out,
+                'check_out_time' => $r->check_out_time,
+                'status' => $r->status,
+                'total_amount' => (float)$r->total_amount,
+                'origin' => $origin,
+                'created_at' => $r->created_at ? $r->created_at->format('Y-m-d H:i') : null,
+                'updated_at' => $r->updated_at ? $r->updated_at->format('Y-m-d H:i') : null,
+            ];
+        })->values()->toArray();
+    }
+
+    public function cancelReservation($id, $reason)
+    {
+        $reservation = \App\Models\Reservation::find($id);
+        if ($reservation && $reservation->status !== 'cancelled') {
+            $service = app(ReservationService::class);
+            $service->cancelReservation($reservation, auth()->id(), $reason);
+            Log::info("Reserva cancelada: {$id}. Motivo: {$reason}. Usuario: " . (auth()->user()->name ?? 'N/A'));
+            $this->loadData();
+            // Dispatch event to Alpine to update local events state
+            $this->dispatch('reservation-cancelled', ['events' => $this->events, 'allReservations' => $this->allReservations]);
+        }
     }
 };
 ?>
@@ -91,8 +145,11 @@ new class extends Component {
 <div x-data="calendarApp({ 
     events: @js($events),
     diasLlenos: @js($diasLlenos),
+    allReservations: @js($allReservations),
     initialDate: '2026-05-27'
-})" class="space-y-8">
+})" 
+@reservation-cancelled.window="events = $event.detail[0].events; allReservations = $event.detail[0].allReservations; initCalendar(); showModal = false; showCancelModal = false; filterReservations();"
+class="space-y-8">
     {{-- Scripts for FullCalendar --}}
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
 
@@ -103,23 +160,23 @@ new class extends Component {
             <p class="text-zinc-500 dark:text-zinc-400 mt-1">Administrar reservas y disponibilidad</p>
         </div>
 
-        {{-- Switch View Mode (Purple area in user description, but styled as requested standard) --}}
+        {{-- Switch View Mode --}}
         <div class="flex items-center self-end sm:self-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-2xl border border-zinc-200/50 dark:border-zinc-700/50 shadow-sm">
             <button @click="viewMode = 'calendar'" 
                 :class="viewMode === 'calendar' ? 'bg-[#4a5d41] text-white shadow-md' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'" 
                 class="px-5 py-2 text-sm font-bold rounded-xl transition-all duration-200">
                 Calendario
             </button>
-            <button type="button"
+            <button @click="viewMode = 'list'"
                 :class="viewMode === 'list' ? 'bg-[#4a5d41] text-white shadow-md' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'" 
-                class="px-5 py-2 text-sm font-bold rounded-xl transition-all duration-200 cursor-not-allowed opacity-60" title="Próximamente">
+                class="px-5 py-2 text-sm font-bold rounded-xl transition-all duration-200">
                 Lista
             </button>
         </div>
     </div>
 
     {{-- Top Cards Section (Orange area in user description) --}}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
         {{-- Entradas Hoy Card --}}
         <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm flex flex-col min-h-[190px]">
             <div class="flex items-center justify-between mb-4">
@@ -161,30 +218,6 @@ new class extends Component {
                         <span class="text-sm font-medium">No hay salidas hoy</span>
                     </div>
                 @endforelse
-            </div>
-        </div>
-
-        {{-- Estadísticas Card --}}
-        <div class="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-[2rem] p-6 shadow-sm flex flex-col min-h-[190px]">
-            <h3 class="text-zinc-800 dark:text-zinc-200 font-bold text-lg mb-4">Estadísticas</h3>
-            <div class="space-y-2.5 flex-1 flex flex-col justify-center">
-                <div class="flex items-center justify-between text-sm">
-                    <span class="text-zinc-500 dark:text-zinc-400 font-medium">Total Reservaciones</span>
-                    <span class="font-bold text-zinc-900 dark:text-white text-base">{{ $estadisticas['total'] }}</span>
-                </div>
-                <div class="w-full h-px bg-zinc-100 dark:bg-zinc-800 my-1"></div>
-                <div class="flex items-center justify-between text-sm">
-                    <span class="text-zinc-500 dark:text-zinc-400 font-medium">Directas</span>
-                    <span class="font-bold text-zinc-900 dark:text-white">{{ $estadisticas['directas'] }}</span>
-                </div>
-                <div class="flex items-center justify-between text-sm">
-                    <span class="text-zinc-500 dark:text-zinc-400 font-medium">Por Teléfono</span>
-                    <span class="font-bold text-zinc-900 dark:text-white">{{ $estadisticas['telefono'] }}</span>
-                </div>
-                <div class="flex items-center justify-between text-sm">
-                    <span class="text-zinc-500 dark:text-zinc-400 font-medium">Por Web</span>
-                    <span class="font-bold text-zinc-900 dark:text-white">{{ $estadisticas['web'] }}</span>
-                </div>
             </div>
         </div>
     </div>
@@ -254,6 +287,70 @@ new class extends Component {
 
         </div>
 
+        {{-- List View Wrapper --}}
+        <div x-show="viewMode === 'list'" class="space-y-6" x-cloak>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-zinc-100 dark:border-zinc-800">
+                <h2 class="text-2xl font-extrabold text-zinc-900 dark:text-white capitalize tracking-tight">Todas las Reservaciones</h2>
+                
+                {{-- Filters --}}
+                <div class="flex flex-wrap items-center gap-2">
+                    <input type="date" x-model="filters.date" @change="filterReservations()" class="bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm rounded-xl px-3 py-1.5 focus:ring-[#4a5d41] outline-none" placeholder="Fecha">
+                    <select x-model="filters.unit" @change="filterReservations()" class="bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm rounded-xl px-3 py-1.5 focus:ring-[#4a5d41] outline-none">
+                        <option value="">Todas las Unidades</option>
+                        <option value="bungalow">Bungalows</option>
+                        <option value="rv">RV Spots</option>
+                        <option value="camping">Camping</option>
+                    </select>
+                    <select x-model="filters.status" @change="filterReservations()" class="bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-sm rounded-xl px-3 py-1.5 focus:ring-[#4a5d41] outline-none">
+                        <option value="">Todos los Estados</option>
+                        <option value="pending">Pendientes</option>
+                        <option value="confirmed">Confirmadas</option>
+                        <option value="checked_in">Activas</option>
+                        <option value="checked_out">Completadas</option>
+                        <option value="cancelled">Canceladas</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="space-y-4">
+                <template x-for="res in filteredReservations" :key="res.id">
+                    <div class="bg-white dark:bg-zinc-800/50 p-4 sm:p-6 rounded-[1.5rem] border border-zinc-200 dark:border-zinc-700/50 shadow-sm flex flex-col sm:flex-row gap-4 sm:items-center justify-between transition-all hover:border-[#4a5d41]/30">
+                        <div class="flex-1 space-y-2">
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-bold text-zinc-900 dark:text-white text-lg" x-text="res.guest_name"></h3>
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full border border-zinc-200 dark:border-zinc-600 text-zinc-500 dark:text-zinc-400" x-text="res.origin"></span>
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full text-white"
+                                    :class="res.status === 'confirmed' ? 'bg-emerald-600' : (res.status === 'checked_in' ? 'bg-blue-600' : (res.status === 'checked_out' ? 'bg-zinc-600' : (res.status === 'cancelled' ? 'bg-red-600' : 'bg-amber-600')))"
+                                    x-text="res.status === 'confirmed' ? 'Registrado' : (res.status === 'checked_in' ? 'Activo' : (res.status === 'checked_out' ? 'Completado' : (res.status === 'cancelled' ? 'Cancelado' : 'Pendiente')))">
+                                </span>
+                            </div>
+                            <div class="flex items-center gap-4 text-sm text-zinc-500 dark:text-zinc-400 font-medium">
+                                <div class="flex items-center gap-1">
+                                    <flux:icon name="map-pin" class="size-4" />
+                                    <span x-text="res.unit_name"></span>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <flux:icon name="calendar" class="size-4" />
+                                    <span x-text="res.check_in + ' - ' + res.check_out"></span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center justify-between sm:justify-end gap-6 sm:w-1/3">
+                            <div class="text-right">
+                                <span class="font-black text-[#4a5d41] dark:text-emerald-400 text-lg" x-text="'$' + res.total_amount"></span>
+                            </div>
+                            <button @click="openListDetail(res)" class="px-4 py-2 bg-zinc-100 dark:bg-zinc-700 hover:bg-zinc-200 dark:hover:bg-zinc-600 text-zinc-700 dark:text-zinc-300 font-bold rounded-xl transition-all text-sm">
+                                Detalles
+                            </button>
+                        </div>
+                    </div>
+                </template>
+                <div x-show="filteredReservations.length === 0" class="text-center py-10 text-zinc-500 font-medium">
+                    No se encontraron reservaciones con los filtros aplicados.
+                </div>
+            </div>
+        </div>
 
     </div>
 
@@ -278,9 +375,9 @@ new class extends Component {
             x-transition:leave-end="opacity-0 scale-95">
             
             {{-- Modal Header --}}
-            <div class="px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900/40">
-                <h3 class="text-xl font-black text-zinc-900 dark:text-white flex items-center gap-2">
-                    <flux:icon name="information-circle" class="size-6 text-[#4a5d41]" />
+            <div class="px-5 py-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900/40">
+                <h3 class="text-lg font-black text-zinc-900 dark:text-white flex items-center gap-2">
+                    <flux:icon name="information-circle" class="size-5 text-[#4a5d41]" />
                     Detalle de Reserva
                 </h3>
                 <button @click="showModal = false" class="p-2 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 hover:bg-zinc-200/50 dark:hover:bg-zinc-800 rounded-full transition-colors">
@@ -290,11 +387,11 @@ new class extends Component {
 
             {{-- Modal Content --}}
             <template x-if="selectedEvent">
-                <div class="p-6 space-y-6">
+                <div class="p-5 space-y-4">
                     {{-- Guest Info --}}
-                    <div class="flex items-center gap-4">
-                        <div class="size-12 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-400 shrink-0">
-                            <flux:icon name="user" class="size-6" />
+                    <div class="flex items-center gap-3">
+                        <div class="size-10 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-600 dark:text-zinc-400 shrink-0">
+                            <flux:icon name="user" class="size-5" />
                         </div>
                         <div>
                             <h4 class="text-lg font-bold text-zinc-900 dark:text-white" x-text="selectedEvent.guest_name"></h4>
@@ -303,7 +400,7 @@ new class extends Component {
                     </div>
 
                     {{-- Unit Info --}}
-                    <div class="grid grid-cols-2 gap-4 bg-zinc-50 dark:bg-zinc-800/40 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800/80">
+                    <div class="grid grid-cols-2 gap-3 bg-zinc-50 dark:bg-zinc-800/40 p-3 rounded-2xl border border-zinc-100 dark:border-zinc-800/80">
                         <div>
                             <span class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider">Unidad</span>
                             <span class="block font-bold text-zinc-800 dark:text-zinc-200 mt-1" x-text="selectedEvent.unit_name"></span>
@@ -318,7 +415,7 @@ new class extends Component {
                     </div>
 
                     {{-- Dates --}}
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-2 gap-3">
                         <div>
                             <span class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider">Check-in</span>
                             <div class="flex items-center gap-2 mt-1.5 text-zinc-700 dark:text-zinc-300">
@@ -336,7 +433,7 @@ new class extends Component {
                     </div>
 
                     {{-- Status & Amount --}}
-                    <div class="flex items-center justify-between p-4 bg-[#4a5d41]/5 dark:bg-[#4a5d41]/10 rounded-2xl border border-[#4a5d41]/10">
+                    <div class="flex items-center justify-between p-3 bg-[#4a5d41]/5 dark:bg-[#4a5d41]/10 rounded-2xl border border-[#4a5d41]/10">
                         <div>
                             <span class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider">Total Estimado</span>
                             <span class="block text-2xl font-black text-[#4a5d41] dark:text-emerald-400 mt-0.5" 
@@ -352,17 +449,85 @@ new class extends Component {
                             </span>
                         </div>
                     </div>
+                    
+                    {{-- Timeline --}}
+                    <div x-show="selectedEvent.created_at" class="bg-zinc-50 dark:bg-zinc-800/40 p-3 rounded-2xl border border-zinc-100 dark:border-zinc-800/80">
+                        <span class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Línea de tiempo</span>
+                        <div class="space-y-2 relative before:absolute before:inset-0 before:ml-2.5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-zinc-300 dark:before:via-zinc-700 before:to-transparent">
+                            <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                                <div class="flex items-center justify-center size-5 rounded-full border border-white dark:border-zinc-900 bg-zinc-200 dark:bg-zinc-700 text-zinc-500 shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2"></div>
+                                <div class="w-[calc(100%-2rem)] md:w-[calc(50%-1.5rem)] pl-3 md:pl-0 md:group-even:pr-3 md:group-odd:pl-3">
+                                    <div class="flex flex-col">
+                                        <div class="text-sm font-bold text-zinc-800 dark:text-zinc-200">Reserva Creada</div>
+                                        <time class="text-xs text-zinc-500 dark:text-zinc-400" x-text="selectedEvent.created_at"></time>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <template x-if="selectedEvent.status === 'cancelled'">
+                                <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                                    <div class="flex items-center justify-center size-5 rounded-full border border-white dark:border-zinc-900 bg-red-500 text-white shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2"></div>
+                                    <div class="w-[calc(100%-2rem)] md:w-[calc(50%-1.5rem)] pl-3 md:pl-0 md:group-even:pr-3 md:group-odd:pl-3">
+                                        <div class="flex flex-col">
+                                            <div class="text-sm font-bold text-red-600 dark:text-red-400">Reserva Cancelada</div>
+                                            <time class="text-xs text-zinc-500 dark:text-zinc-400" x-text="selectedEvent.updated_at"></time>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                            
+                            <template x-if="selectedEvent.status === 'checked_in' || selectedEvent.status === 'checked_out'">
+                                <div class="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
+                                    <div class="flex items-center justify-center size-5 rounded-full border border-white dark:border-zinc-900 bg-blue-500 text-white shadow shrink-0 md:order-1 md:group-odd:-translate-x-1/2 md:group-even:translate-x-1/2"></div>
+                                    <div class="w-[calc(100%-2rem)] md:w-[calc(50%-1.5rem)] pl-3 md:pl-0 md:group-even:pr-3 md:group-odd:pl-3">
+                                        <div class="flex flex-col">
+                                            <div class="text-sm font-bold text-blue-600 dark:text-blue-400">Check-in Realizado</div>
+                                            <time class="text-xs text-zinc-500 dark:text-zinc-400" x-text="selectedEvent.check_in_time || selectedEvent.updated_at"></time>
+                                        </div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
 
-                    {{-- Close Button --}}
-                    <div class="flex gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                    {{-- Action Buttons --}}
+                    <div class="flex flex-col gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
                         <button @click="showModal = false" 
-                            class="w-full py-3 bg-[#4a5d41] text-white hover:bg-[#3a4a34] font-black rounded-xl transition-all shadow-md active:scale-[0.98] flex items-center justify-center gap-2">
-                            <flux:icon name="check" class="size-5" />
-                            Aceptar
+                            class="w-full py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 font-bold rounded-xl transition-all shadow-sm active:scale-[0.98]">
+                            Cerrar Detalles
                         </button>
+                        
+                        <template x-if="selectedEvent.status !== 'cancelled' && selectedEvent.status !== 'checked_out'">
+                            <button @click="openCancelModal()" 
+                                class="w-full py-2 bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-950/30 dark:text-red-400 dark:hover:bg-red-900/40 border border-red-200 dark:border-red-900/30 font-bold rounded-xl transition-all shadow-sm active:scale-[0.98]">
+                                Cancelar Reserva
+                            </button>
+                        </template>
                     </div>
                 </div>
             </template>
+        </div>
+    </div>
+    
+    {{-- Cancel Reason Modal --}}
+    <div x-show="showCancelModal" 
+        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/80 backdrop-blur-sm"
+        style="z-index: 60;"
+        x-cloak>
+        <div class="bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden border border-zinc-200 dark:border-zinc-800 p-6">
+            <h3 class="text-xl font-black text-red-600 dark:text-red-500 mb-2">Cancelar Reserva</h3>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">¿Estás seguro de que deseas cancelar esta reserva? Por favor, indica el motivo.</p>
+            
+            <textarea x-model="cancelReason" rows="3" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm focus:ring-red-500 focus:border-red-500 outline-none mb-4 placeholder-zinc-400" placeholder="Motivo de cancelación..."></textarea>
+            
+            <div class="flex gap-3">
+                <button @click="showCancelModal = false; cancelReason = ''" class="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 font-bold rounded-xl transition-all">
+                    Atrás
+                </button>
+                <button @click="submitCancel()" :disabled="!cancelReason.trim()" class="flex-1 py-2.5 bg-red-600 text-white hover:bg-red-700 font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    Confirmar
+                </button>
+            </div>
         </div>
     </div>
 
@@ -667,6 +832,13 @@ new class extends Component {
             return {
                 events: config.events,
                 diasLlenos: config.diasLlenos || [],
+                allReservations: config.allReservations || [],
+                filteredReservations: [],
+                filters: {
+                    date: '',
+                    unit: '',
+                    status: ''
+                },
                 viewMode: 'calendar',
                 currentTitle: '',
                 currentView: 'dayGridMonth',
@@ -674,6 +846,10 @@ new class extends Component {
                 showModal: false,
                 showDayModal: false,
                 selectedDayData: null,
+                
+                showCancelModal: false,
+                cancelReason: '',
+                cancelReservationId: null,
 
                 init() {
                     // Wait for FullCalendar to be loaded if navigating via wire:navigate
@@ -687,7 +863,40 @@ new class extends Component {
                     
                     this.$nextTick(() => {
                         checkAndInit();
+                        this.filterReservations();
                     });
+                },
+                
+                filterReservations() {
+                    this.filteredReservations = this.allReservations.filter(res => {
+                        let match = true;
+                        if (this.filters.date) {
+                            if (res.check_in !== this.filters.date) match = false;
+                        }
+                        if (this.filters.unit) {
+                            if (res.unit_type !== this.filters.unit) match = false;
+                        }
+                        if (this.filters.status) {
+                            if (res.status !== this.filters.status) match = false;
+                        }
+                        return match;
+                    });
+                },
+                
+                openListDetail(res) {
+                    this.selectedEvent = res;
+                    this.showModal = true;
+                },
+                
+                openCancelModal() {
+                    this.cancelReason = '';
+                    this.cancelReservationId = this.selectedEvent.id;
+                    this.showCancelModal = true;
+                },
+                
+                submitCancel() {
+                    if (!this.cancelReason.trim()) return;
+                    Livewire.find(document.querySelector('[wire\\:id]').getAttribute('wire:id')).call('cancelReservation', this.cancelReservationId, this.cancelReason);
                 },
 
                 initCalendar() {
