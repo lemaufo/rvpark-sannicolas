@@ -21,7 +21,8 @@
             <flux:sidebar.toggle class="lg:hidden" icon="x-mark" />
 
             <a href="{{ route('dashboard') }}" class="flex justify-center py-8 w-full" wire:navigate>
-                <img src="{{ asset('logo_triangular.png') }}" alt="Logo" style="width: 160px; height: auto;" class="object-contain">
+                <img src="{{ asset('logo_triangular.png') }}" alt="Logo" style="width: 160px; height: auto;" class="dark:hidden object-contain">
+                <img src="{{ asset('logosinfondo.png') }}" alt="Logo" style="width: 160px; height: auto;" class="hidden dark:block object-contain">
             </a>
 
             <flux:navlist>
@@ -67,7 +68,7 @@
                     <flux:menu.separator />
 
                     <flux:menu.radio.group>
-                        <flux:menu.item href="/settings/profile" icon="cog" wire:navigate>Settings</flux:menu.item>
+                        <flux:menu.item href="/settings/profile" icon="cog" wire:navigate>{{ __('Settings') }}</flux:menu.item>
                     </flux:menu.radio.group>
 
                     <flux:menu.separator />
@@ -117,7 +118,7 @@
                     <flux:menu.separator />
 
                     <flux:menu.radio.group>
-                        <flux:menu.item href="/settings/profile" icon="cog" wire:navigate>Settings</flux:menu.item>
+                        <flux:menu.item href="/settings/profile" icon="cog" wire:navigate>{{ __('Settings') }}</flux:menu.item>
                     </flux:menu.radio.group>
 
                     <flux:menu.separator />

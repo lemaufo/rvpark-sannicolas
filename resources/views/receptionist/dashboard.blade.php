@@ -2,7 +2,7 @@
     <div class="p-6 lg:p-10 max-w-7xl mx-auto">
         <div class="mb-10 flex items-end justify-between">
             <div>
-                <h1 class="text-3xl font-extrabold text-zinc-900 dark:text-white tracking-tight">Dashboard Recepcionista</h1>
+                <h1 class="text-3xl font-extrabold text-zinc-900 dark:text-white tracking-tight">Panel Recepcionista</h1>
                 <p class="text-zinc-500 dark:text-zinc-400 mt-1 font-medium italic">Resumen para {{ now()->translatedFormat('l, d \d\e F Y') }}</p>
             </div>
             <button class="bg-[#4a5d41] text-white px-6 py-3 rounded-2xl font-bold shadow-xl shadow-brand-green/20 hover:scale-[1.02] transition-all duration-200 flex items-center gap-2.5">
