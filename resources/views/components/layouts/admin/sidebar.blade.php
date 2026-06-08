@@ -1,10 +1,10 @@
 @props(['active' => 'dashboard'])
 
 <aside id="sidebar"
-    class="fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-zinc-200 transition-transform duration-300 transform -translate-x-full lg:translate-x-0 lg:static lg:inset-0">
+    class="fixed inset-y-0 left-0 z-50 w-72 bg-white dark:bg-zinc-900 border-r border-zinc-200 dark:border-zinc-800 transition-transform duration-300 transform -translate-x-full lg:translate-x-0 lg:static lg:inset-0">
     <div class="flex flex-col h-full">
         <!-- Branding -->
-        <div class="p-8 flex justify-center border-b border-zinc-50">
+        <div class="p-8 flex justify-center border-b border-zinc-50 dark:border-zinc-800/50">
             <a href="{{ route('dashboard') }}" class="group">
                 <img src="{{ asset('logo_triangular.png') }}" alt="Logo" style="width: 145px; height: auto;"
                     class="dark:hidden object-contain transition-transform duration-300 group-hover:scale-105">
@@ -27,26 +27,26 @@
 
             @foreach($navItems as $item)
                 <a href="{{ route($item['route']) }}"
-                    class="flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 {{ $active === $item['id'] ? 'bg-[#4a5d41] text-white shadow-lg shadow-brand-green/20' : 'text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900' }}">
+                    class="flex items-center gap-3.5 px-4 py-3 rounded-xl text-sm font-semibold transition-all duration-300 {{ $active === $item['id'] ? 'bg-[#4a5d41] text-white shadow-lg shadow-brand-green/20' : 'text-zinc-500 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 hover:text-zinc-900 dark:hover:text-white' }}">
                     <flux:icon :name="$item['icon']" variant="outline"
-                        class="size-5 {{ $active === $item['id'] ? 'text-white' : 'text-zinc-400 group-hover:text-zinc-600' }}" />
+                        class="size-5 {{ $active === $item['id'] ? 'text-white' : 'text-zinc-400 dark:text-zinc-500 group-hover:text-zinc-600 dark:group-hover:text-zinc-300' }}" />
                     <span>{{ $item['label'] }}</span>
                 </a>
             @endforeach
         </nav>
 
         <!-- Profile Section (Bottom) -->
-        <div class="p-4 mt-auto border-t border-zinc-50">
+        <div class="p-4 mt-auto border-t border-zinc-50 dark:border-zinc-800/50">
             <flux:dropdown position="top" align="start">
-                <button class="w-full flex items-center gap-3 p-3 hover:bg-zinc-50 rounded-2xl transition-colors group">
-                    <div class="size-10 rounded-xl bg-zinc-900 flex items-center justify-center text-white text-xs font-black shadow-lg shadow-zinc-200">
+                <button class="w-full flex items-center gap-3 p-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 rounded-2xl transition-colors group">
+                    <div class="size-10 rounded-xl bg-zinc-900 dark:bg-zinc-800 flex items-center justify-center text-white text-xs font-black shadow-lg shadow-zinc-200 dark:shadow-none">
                         {{ auth()->user()->initials() }}
                     </div>
                     <div class="flex-1 text-left">
-                        <p class="text-sm font-bold text-zinc-900 truncate">{{ auth()->user()->name }}</p>
+                        <p class="text-sm font-bold text-zinc-900 dark:text-zinc-100 truncate">{{ auth()->user()->name }}</p>
                         <p class="text-[10px] text-zinc-400 font-bold uppercase tracking-widest truncate">Administrador</p>
                     </div>
-                    <flux:icon name="chevrons-up-down" class="size-4 text-zinc-400 group-hover:text-zinc-600 transition-colors" />
+                    <flux:icon name="chevrons-up-down" class="size-4 text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300 transition-colors" />
                 </button>
 
                 <flux:menu class="w-64 p-2 rounded-2xl shadow-2xl">

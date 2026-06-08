@@ -72,16 +72,6 @@
                             <div class="size-3 rounded-full bg-red-500 shadow-lg shadow-red-200 dark:shadow-none"></div>
                         </div>
 
-                        <!-- Bungalow Card -->
-                        <div class="p-6 border border-zinc-50 dark:border-zinc-800 rounded-3xl bg-[#fcfcfc] dark:bg-zinc-800/50 flex justify-between items-start group hover:border-brand-green/20 transition-colors">
-                            <div>
-                                <h4 class="font-extrabold text-zinc-900 dark:text-white text-lg">Bungalow Coral</h4>
-                                <p class="text-xs text-zinc-400 font-bold uppercase tracking-widest mt-0.5">Bungalow</p>
-                                <span class="inline-block mt-4 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[10px] font-black rounded-xl uppercase tracking-widest">Disponible</span>
-                                <p class="text-xs text-zinc-400 font-bold mt-4 italic">Listo para check-in</p>
-                            </div>
-                            <div class="size-3 rounded-full bg-emerald-500 shadow-lg shadow-emerald-200 dark:shadow-none"></div>
-                        </div>
                     </div>
                 </div>
             </div>

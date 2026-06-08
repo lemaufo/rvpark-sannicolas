@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OperationalStatus extends Model
 {
+    public $timestamps = false;
     // Usamos 'false' porque nosotros manejaremos la fecha con changed_at o timestamps
     protected $fillable = [
         'unit_id',

@@ -65,14 +65,6 @@
                             </div>
                             <div class="size-2 rounded-full bg-red-500"></div>
                         </div>
-                        <div class="p-4 border border-zinc-100 dark:border-zinc-800 rounded-xl bg-zinc-50/30 dark:bg-zinc-800/30 flex justify-between items-start">
-                            <div>
-                                <h4 class="font-bold text-zinc-900 dark:text-white">Bungalow Coral</h4>
-                                <p class="text-xs text-zinc-500">Bungalow</p>
-                                <span class="inline-block mt-3 px-2 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold rounded-md uppercase tracking-wider">Disponible</span>
-                            </div>
-                            <div class="size-2 rounded-full bg-emerald-500"></div>
-                        </div>
                     </div>
                 </div>
             </div>

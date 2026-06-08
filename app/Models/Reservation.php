@@ -12,9 +12,12 @@ class Reservation extends Model
         'guest_name',
         'guest_phone',
         'check_in',
+        'check_in_time',
         'check_out',
+        'check_out_time',
         'status',
-        'total_amount'
+        'total_amount',
+        'cancel_reason'
     ];
 
     // Una reserva pertenece a una unidad
