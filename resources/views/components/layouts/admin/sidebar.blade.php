@@ -7,7 +7,9 @@
         <div class="p-8 flex justify-center border-b border-zinc-50 dark:border-zinc-800/50">
             <a href="{{ route('dashboard') }}" class="group">
                 <img src="{{ asset('logo_triangular.png') }}" alt="Logo" style="width: 145px; height: auto;"
-                    class="object-contain transition-transform duration-300 group-hover:scale-105">
+                    class="dark:hidden object-contain transition-transform duration-300 group-hover:scale-105">
+                <img src="{{ asset('logosinfondo.png') }}" alt="Logo" style="width: 145px; height: auto;"
+                    class="hidden dark:block object-contain transition-transform duration-300 group-hover:scale-105">
             </a>
         </div>
 

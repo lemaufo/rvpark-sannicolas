@@ -3,7 +3,7 @@
 <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
 <link rel="icon" type="image/png" href="{{ asset('logo_triangular.png') }}">
 
-<title>{{ $title ?? 'Laravel' }}</title>
+<title>{{ $title ?? 'RV Park San Nicolás' }}</title>
 
 <link rel="preconnect" href="https://fonts.bunny.net">
 <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600" rel="stylesheet" />
