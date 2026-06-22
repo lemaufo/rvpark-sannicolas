@@ -1,5 +1,5 @@
 @php
-    $logoUrl = 'https://raw.githubusercontent.com/lemaufo/rvpark-sannicolas/dev/public/logo_email.png';
+    $logoUrl = 'https://raw.githubusercontent.com/lemaufo/rvpark-sannicolas/dev/public/logo_email.png?v=2';
 @endphp
 <!DOCTYPE html>
 <html lang="es">
@@ -17,7 +17,13 @@
                     {{-- Logo --}}
                     <tr>
                         <td align="center" style="padding-bottom: 28px;">
-                            <img src="{{ $logoUrl }}" alt="RV Park San Nicolás" width="140" style="display: block; width: 140px; height: auto;" />
+                            <table role="presentation" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="background-color: #4a5d41; border-radius: 12px; padding: 12px 20px;">
+                                        <span style="color: #ffffff; font-size: 16px; font-weight: 700; letter-spacing: 0.5px; font-family: Georgia, 'Times New Roman', serif;">RV Park San Nicolás</span>
+                                    </td>
+                                </tr>
+                            </table>
                         </td>
                     </tr>
 
