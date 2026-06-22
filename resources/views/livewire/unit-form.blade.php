@@ -2,12 +2,20 @@
 
 use Livewire\Volt\Component;
 use App\Models\Unit;
+use Livewire\WithFileUploads;
 
 new class extends Component {
+    use WithFileUploads;
+
     public $type = 'bungalow';
     public $name = '';
     public $notes = '';
+    public $price_per_day = 0;
+    public $price_per_hour = 0;
+    public $image;
     public $recentUnits = [];
+    public $editingUnit = null;
+    public $showEditModal = false;
 
     public function mount()
     {
@@ -24,16 +32,73 @@ new class extends Component {
         $this->validate([
             'name' => 'required|string|max:60',
             'type' => 'required|in:bungalow,rv,camping',
+            'price_per_day' => 'required|numeric|min:0',
+            'price_per_hour' => 'required|numeric|min:0',
+            'image' => 'nullable|image|max:2048',
         ]);
 
-        Unit::create([
+        $data = [
             'name'   => $this->name,
             'type'   => $this->type,
             'status' => 'available',
             'notes'  => $this->notes,
+            'price_per_day' => $this->price_per_day,
+            'price_per_hour' => $this->price_per_hour,
+        ];
+
+        if ($this->image) {
+            $data['image'] = $this->image->store('units', 'public');
+        }
+
+        Unit::create($data);
+
+        $this->reset(['name', 'notes', 'price_per_day', 'price_per_hour', 'image']);
+        $this->loadRecent();
+    }
+
+    public function editUnit($id)
+    {
+        $unit = Unit::find($id);
+        $this->editingUnit = $unit;
+        $this->name = $unit->name;
+        $this->type = $unit->type;
+        $this->notes = $unit->notes;
+        $this->price_per_day = $unit->price_per_day;
+        $this->price_per_hour = $unit->price_per_hour;
+        $this->showEditModal = true;
+    }
+
+    public function updateUnit()
+    {
+        $this->validate([
+            'name' => 'required|string|max:60',
+            'type' => 'required|in:bungalow,rv,camping',
+            'price_per_day' => 'required|numeric|min:0',
+            'price_per_hour' => 'required|numeric|min:0',
+            'image' => 'nullable|image|max:2048',
         ]);
 
-        $this->reset(['name', 'notes']);
+        $data = [
+            'name'   => $this->name,
+            'type'   => $this->type,
+            'notes'  => $this->notes,
+            'price_per_day' => $this->price_per_day,
+            'price_per_hour' => $this->price_per_hour,
+        ];
+
+        if ($this->image) {
+            $data['image'] = $this->image->store('units', 'public');
+        }
+
+        $this->editingUnit->update($data);
+
+        $this->reset(['name', 'notes', 'price_per_day', 'price_per_hour', 'image', 'editingUnit', 'showEditModal']);
+        $this->loadRecent();
+    }
+
+    public function deleteUnit($id)
+    {
+        Unit::findOrFail($id)->delete();
         $this->loadRecent();
     }
 
@@ -52,7 +117,7 @@ new class extends Component {
 
     {{-- Formulario --}}
     <div class="lg:col-span-2 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-8 shadow-sm">
-        <h2 class="text-xl font-bold text-zinc-900 dark:text-white mb-6">Nueva Unidad</h2>
+        <h2 class="text-xl font-bold text-zinc-900 dark:text-white mb-6">{{ $editingUnit ? 'Editar Unidad' : 'Nueva Unidad' }}</h2>
 
         {{-- Tipo --}}
         <div class="mb-6">
@@ -75,16 +140,48 @@ new class extends Component {
             <flux:input wire:model="name" placeholder="ej. Jade, Coral, Amber" />
         </div>
 
+        {{-- Precios --}}
+        <div class="grid grid-cols-2 gap-4 mb-5">
+            <div>
+                <label class="block text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Precio por Día *</label>
+                <flux:input wire:model="price_per_day" type="number" step="0.01" min="0" placeholder="0.00" />
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Precio por Hora *</label>
+                <flux:input wire:model="price_per_hour" type="number" step="0.01" min="0" placeholder="0.00" />
+            </div>
+        </div>
+
+        {{-- Imagen --}}
+        <div class="mb-5">
+            <label class="block text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Imagen de la Unidad</label>
+            <input type="file" wire:model="image" accept="image/*"
+                class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-[#4a5d41] file:text-white hover:file:bg-[#3d4d35] file:cursor-pointer" />
+            @if($image)
+                <div class="mt-3">
+                    <img src="{{ $image->temporaryUrl() }}" class="h-20 rounded-lg object-cover" />
+                </div>
+            @endif
+        </div>
+
         {{-- Notas --}}
         <div class="mb-6">
             <label class="block text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Especificaciones</label>
             <flux:textarea wire:model="notes" placeholder="ej. 2 camas, AC, Cocina, Vista al lago..." rows="3" />
         </div>
 
-        <button wire:click="save" type="button"
-            class="w-full py-3 bg-[#4a5d41] hover:bg-[#3d4d35] text-white font-bold rounded-xl transition-colors">
-            Agregar Unidad
-        </button>
+        <div class="flex gap-3">
+            <button wire:click="{{ $editingUnit ? 'updateUnit' : 'save' }}" type="button"
+                class="flex-1 py-3 bg-[#4a5d41] hover:bg-[#3d4d35] text-white font-bold rounded-xl transition-colors">
+                {{ $editingUnit ? 'Actualizar Unidad' : 'Agregar Unidad' }}
+            </button>
+            @if($editingUnit)
+                <button wire:click="$set('editingUnit', null); $set('showEditModal', false); $reset(['name', 'notes', 'price_per_day', 'price_per_hour', 'image'])" type="button"
+                    class="px-6 py-3 bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300 font-bold rounded-xl hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors">
+                    Cancelar
+                </button>
+            @endif
+        </div>
     </div>
 
     {{-- Panel derecho --}}
@@ -94,10 +191,22 @@ new class extends Component {
             <h3 class="text-base font-bold text-zinc-900 dark:text-white mb-4">Agregadas Recientemente</h3>
             @forelse($recentUnits as $u)
                 <div class="flex items-center gap-3 py-2 border-b border-zinc-50 dark:border-zinc-800 last:border-0">
-                    <flux:icon name="home" class="size-5 text-zinc-400" />
-                    <div>
+                    @if($u['image'])
+                        <img src="{{ asset('storage/' . $u['image']) }}" class="size-8 rounded-lg object-cover" />
+                    @else
+                        <flux:icon name="home" class="size-5 text-zinc-400" />
+                    @endif
+                    <div class="flex-1">
                         <p class="text-sm font-semibold text-zinc-800 dark:text-white">{{ $u['name'] }}</p>
-                        <p class="text-xs text-zinc-400">{{ ucfirst($u['type']) }}</p>
+                        <p class="text-xs text-zinc-400">{{ ucfirst($u['type']) }} - ${{ number_format($u['price_per_day'], 2) }}/día</p>
+                    </div>
+                    <div class="flex gap-1">
+                        <button wire:click="editUnit({{ $u['id'] }}" class="p-1.5 text-zinc-400 hover:text-blue-500 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                            <flux:icon name="pencil" class="size-4" />
+                        </button>
+                        <button wire:click="deleteUnit({{ $u['id'] }})" wire:confirm="¿Eliminar esta unidad?" class="p-1.5 text-zinc-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                            <flux:icon name="trash" class="size-4" />
+                        </button>
                     </div>
                 </div>
             @empty
