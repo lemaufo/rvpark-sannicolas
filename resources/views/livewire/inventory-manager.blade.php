@@ -15,9 +15,6 @@ new class extends Component {
     public $total_amount = '';
     public $filtro = 'all';
 
-    // We don't need a public property for the modal boolean if we use flux:modal.
-    // But since we need to load data on click, we'll keep the ID.
-
     public function mount()
     {
         $this->loadData();
@@ -32,6 +29,7 @@ new class extends Component {
                     'id' => $unit->id,
                     'name' => $unit->name,
                     'type' => ucfirst($unit->type),
+                    'image' => $unit->image,
                     'status_raw' => $unit->status,
                     'status' => match ($unit->status) {
                         'available' => 'Disponible',
@@ -201,9 +199,13 @@ new class extends Component {
                 class="cursor-pointer bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1">
                 <!-- Thumbnail Area -->
                 <div
-                    class="relative w-full aspect-[4/3] bg-[#e8e7df] dark:bg-zinc-800 rounded-[1.5rem] flex items-center justify-center mb-5">
-                    <flux:icon name="home" class="size-16 text-zinc-300 dark:text-zinc-600" variant="outline"
-                        stroke-width="1.5" />
+                    class="relative w-full aspect-[4/3] bg-[#e8e7df] dark:bg-zinc-800 rounded-[1.5rem] flex items-center justify-center mb-5 overflow-hidden">
+                    @if($unit['image'])
+                        <img src="{{ asset('storage/' . $unit['image']) }}" class="absolute inset-0 w-full h-full object-cover" />
+                    @else
+                        <flux:icon name="home" class="size-16 text-zinc-300 dark:text-zinc-600" variant="outline"
+                            stroke-width="1.5" />
+                    @endif
 
                     <!-- Status dot -->
                     <div class="absolute top-4 right-4">
@@ -263,9 +265,13 @@ new class extends Component {
 
                 <!-- Image Area -->
                 <div
-                    class="relative w-full aspect-[16/9] bg-[#e8e7df] dark:bg-zinc-800 rounded-2xl flex items-center justify-center mb-6">
-                    <flux:icon name="home" class="size-16 text-zinc-300 dark:text-zinc-600" variant="outline"
-                        stroke-width="1.5" />
+                    class="relative w-full aspect-[16/9] bg-[#e8e7df] dark:bg-zinc-800 rounded-2xl flex items-center justify-center mb-6 overflow-hidden">
+                    @if($su['image'])
+                        <img src="{{ asset('storage/' . $su['image']) }}" class="absolute inset-0 w-full h-full object-cover" />
+                    @else
+                        <flux:icon name="home" class="size-16 text-zinc-300 dark:text-zinc-600" variant="outline"
+                            stroke-width="1.5" />
+                    @endif
                     <div class="absolute top-4 right-4">
                         <div
                             class="size-4 rounded-full {{ $su['color_classes']['bg'] }} border-[3px] border-[#e8e7df] dark:border-zinc-800">
