@@ -4,13 +4,22 @@
 <head>
     @include('partials.head')
     <style>
-        /* FUERZA BRUTA PARA EL COLOR VERDE */
+        /* Hover verde Distinto en menú */
+        [data-flux-navlist-item]:hover:not([data-current]) {
+            background-color: #2d3a28 !important;
+            color: white !important;
+        }
+        [data-flux-navlist-item]:hover:not([data-current]) svg,
+        [data-flux-navlist-item]:hover:not([data-current]) svg * {
+            stroke: white !important;
+            color: white !important;
+        }
+        /* Seleccionado */
         [data-flux-navlist-item][data-current],
         [data-flux-navlist-item][data-current]:hover {
             background-color: #4a5d41 !important;
             color: white !important;
         }
-
         [data-flux-navlist-item][data-current] svg,
         [data-flux-navlist-item][data-current] svg * {
             stroke: white !important;
@@ -25,11 +34,13 @@
 
         <a href="{{ route('dashboard') }}" class="flex justify-center py-8 w-full" wire:navigate>
             <img src="{{ asset('logo_triangular.png') }}" alt="Logo" style="width: 160px; height: auto;"
-                class="object-contain">
+                class="object-contain dark:hidden">
+            <img src="{{ asset('logo2.png') }}" alt="Logo" style="width: 160px; height: auto;"
+                class="object-contain hidden dark:block">
         </a>
 
         <flux:navlist>
-            <flux:navlist.group heading="Plataforma" class="grid">
+            <flux:navlist.group heading="Administración" class="grid">
                 <flux:navlist.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')"
                     wire:navigate>Panel</flux:navlist.item>
                 <flux:navlist.item icon="archive-box" :href="route('inventario')"
@@ -82,7 +93,7 @@
                 <flux:menu.separator />
 
                 <flux:menu.radio.group>
-                    <flux:menu.item href="/settings/profile" icon="cog" wire:navigate>Settings</flux:menu.item>
+                        <flux:menu.item href="/settings/profile" icon="cog" wire:navigate>Configuración</flux:menu.item>
                 </flux:menu.radio.group>
 
                 <flux:menu.separator />
@@ -90,7 +101,7 @@
                 <form method="POST" action="{{ route('logout') }}" class="w-full">
                     @csrf
                     <flux:menu.item as="button" type="submit" icon="arrow-right-start-on-rectangle" class="w-full">
-                        {{ __('Log Out') }}
+                            {{ __('Cerrar sesión') }}
                     </flux:menu.item>
                 </form>
             </flux:menu>
@@ -128,7 +139,7 @@
                 <flux:menu.separator />
 
                 <flux:menu.radio.group>
-                    <flux:menu.item href="/settings/profile" icon="cog" wire:navigate>Settings</flux:menu.item>
+                        <flux:menu.item href="/settings/profile" icon="cog" wire:navigate>Configuración</flux:menu.item>
                 </flux:menu.radio.group>
 
                 <flux:menu.separator />
@@ -136,7 +147,7 @@
                 <form method="POST" action="{{ route('logout') }}" class="w-full">
                     @csrf
                     <flux:menu.item as="button" type="submit" icon="arrow-right-start-on-rectangle" class="w-full">
-                        {{ __('Log Out') }}
+                            {{ __('Cerrar sesión') }}
                     </flux:menu.item>
                 </form>
             </flux:menu>

@@ -161,7 +161,7 @@ class="space-y-8">
         </div>
 
         {{-- Switch View Mode --}}
-        <div class="flex items-center self-end sm:self-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-2xl border border-zinc-200/50 dark:border-zinc-700/50 shadow-sm">
+        <div class="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 p-1 rounded-2xl border border-zinc-200/50 dark:border-zinc-700/50 shadow-sm">
             <button @click="viewMode = 'calendar'" 
                 :class="viewMode === 'calendar' ? 'bg-[#4a5d41] text-white shadow-md' : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100'" 
                 class="px-5 py-2 text-sm font-bold rounded-xl transition-all duration-200">
@@ -492,6 +492,11 @@ class="space-y-8">
 
                     {{-- Action Buttons --}}
                     <div class="flex flex-col gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
+                        <button @click="downloadTicket(selectedEvent.id.replace('real_', ''))"
+                            class="w-full py-2 bg-[#4a5d41] text-white hover:bg-[#3d4d35] font-bold rounded-xl transition-all shadow-sm active:scale-[0.98] flex items-center justify-center gap-2">
+                            <flux:icon name="printer" class="size-4" />
+                            Generar Ticket PDF
+                        </button>
                         <button @click="showModal = false" 
                             class="w-full py-2 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 font-bold rounded-xl transition-all shadow-sm active:scale-[0.98]">
                             Cerrar Detalles
@@ -897,6 +902,26 @@ class="space-y-8">
                 submitCancel() {
                     if (!this.cancelReason.trim()) return;
                     Livewire.find(document.querySelector('[wire\\:id]').getAttribute('wire:id')).call('cancelReservation', this.cancelReservationId, this.cancelReason);
+                },
+
+                async downloadTicket(id) {
+                    const url = '{{ url("/ticket/reserva") }}/' + id;
+                    try {
+                        const resp = await fetch(url);
+                        const blob = await resp.blob();
+                        const disposition = resp.headers.get('content-disposition') || '';
+                        const match = disposition.match(/filename="?([^";\n]+)"?/);
+                        const filename = match ? match[1] : 'ticket.pdf';
+                        const a = document.createElement('a');
+                        a.href = URL.createObjectURL(blob);
+                        a.download = filename;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(a.href);
+                    } catch (e) {
+                        console.error('Error downloading ticket:', e);
+                    }
                 },
 
                 initCalendar() {
