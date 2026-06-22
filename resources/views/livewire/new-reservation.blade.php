@@ -73,9 +73,7 @@ new class extends Component {
                 $unit = Unit::find($this->unit_id);
                 $rate = 0;
                 if ($unit) {
-                    if ($unit->type === 'bungalow') $rate = 1000;
-                    elseif ($unit->type === 'rv') $rate = 500;
-                    else $rate = 200; // camping
+                    $rate = $unit->price_per_day;
                 }
                 
                 $this->total_amount = $nights * $rate;
@@ -164,10 +162,10 @@ new class extends Component {
                     </div>
                 @endif
 
-                <form wire:submit="submit" class="space-y-5">
+                <form wire:submit="submit" class="space-y-6">
                     <div>
-                        <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Unidad Disponible</label>
-                        <select wire:model.live="unit_id" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
+                        <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Unidad Disponible</label>
+                        <select wire:model.live="unit_id" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-transparent dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
                             <option value="">Seleccione una unidad...</option>
                             @foreach($units as $unit)
                                 <option value="{{ $unit->id }}" @if($unit->status !== 'available') disabled @endif>
@@ -178,52 +176,52 @@ new class extends Component {
                         @error('unit_id') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-2 gap-5">
                         <div>
-                            <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Check-in (Fecha)</label>
-                            <input type="date" wire:model.live="check_in" min="{{ date('Y-m-d') }}" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
+                            <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Check-in (Fecha)</label>
+                            <input type="date" wire:model.live="check_in" min="{{ date('Y-m-d') }}" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-transparent dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
                             @error('check_in') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Check-out (Fecha)</label>
-                            <input type="date" wire:model.live="check_out" min="{{ $check_in ? date('Y-m-d', strtotime($check_in . ' +1 day')) : date('Y-m-d', strtotime('+1 day')) }}" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
+                            <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Check-out (Fecha)</label>
+                            <input type="date" wire:model.live="check_out" min="{{ $check_in ? date('Y-m-d', strtotime($check_in . ' +1 day')) : date('Y-m-d', strtotime('+1 day')) }}" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-transparent dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
                             @error('check_out') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="grid grid-cols-2 gap-5">
                         <div>
-                            <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Estatus</label>
-                            <select wire:model.live="status" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
+                            <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Estatus</label>
+                            <select wire:model.live="status" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-transparent dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
                                 <option value="pending">Pendiente</option>
                                 <option value="confirmed">Confirmada</option>
                             </select>
                             @error('status') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                         </div>
                         <div>
-                            <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Hora de Salida</label>
-                            <input type="time" wire:model="check_out_time" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
+                            <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Hora de Salida</label>
+                            <input type="time" wire:model="check_out_time" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-transparent dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
                             @error('check_out_time') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                         </div>
                     </div>
 
                     @if($status === 'confirmed')
                     <div>
-                        <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Hora de Entrada</label>
-                        <input type="time" wire:model="check_in_time" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
+                        <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Hora de Entrada</label>
+                        <input type="time" wire:model="check_in_time" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-transparent dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
                         @error('check_in_time') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                     </div>
                     @endif
 
                     <div>
-                        <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Nombre del Huésped</label>
-                        <input type="text" wire:model="guest_name" placeholder="Ej. Juan Pérez" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
+                        <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Nombre del Huésped</label>
+                        <input type="text" wire:model="guest_name" placeholder="Ej. Juan Pérez" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-transparent dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
                         @error('guest_name') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                     </div>
 
                     <div>
-                        <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Teléfono</label>
-                        <input type="tel" wire:model="guest_phone" placeholder="Ej. +52 55 1234 5678" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
+                        <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Teléfono</label>
+                        <input type="tel" wire:model="guest_phone" placeholder="Ej. +52 55 1234 5678" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-transparent dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors">
                         @error('guest_phone') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                     </div>
                     
