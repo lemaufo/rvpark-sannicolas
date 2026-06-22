@@ -30,7 +30,7 @@ new class extends Component {
     public function with()
     {
         return [
-            'unitsList' => Unit::latest()->paginate(5),
+            'unitsList' => Unit::latest()->paginate(8),
         ];
     }
 
@@ -176,44 +176,67 @@ new class extends Component {
     </div>
 
     {{-- Panel derecho --}}
-    <div class="space-y-6">
-        {{-- Unidades Registradas --}}
-        <div class="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-6 shadow-sm">
-            <h3 class="text-base font-bold text-zinc-900 dark:text-white mb-4">Unidades Registradas</h3>
-            <div class="space-y-2">
-                @forelse($unitsList as $u)
-                    <div class="flex items-center gap-3 py-2 border-b border-zinc-50 dark:border-zinc-800 last:border-0">
-                        @if($u['image'])
-                            <img src="{{ asset('storage/' . $u['image']) }}" class="size-8 rounded-lg object-cover" />
-                        @else
-                            <flux:icon name="home" class="size-5 text-zinc-400" />
-                        @endif
-                        <div class="flex-1">
-                            <p class="text-sm font-semibold text-zinc-800 dark:text-white">{{ $u['name'] }}</p>
-                            <p class="text-xs text-zinc-400">{{ ucfirst($u['type']) }} - ${{ number_format($u['price_per_day'], 2) }}/día</p>
-                        </div>
-                        <div class="flex gap-1">
-                            <button wire:click="editUnit({{ $u['id'] }})" class="p-1.5 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors" title="Editar">
-                                <flux:icon name="pencil" class="size-4" />
-                            </button>
-                            <button wire:click="deleteUnit({{ $u['id'] }})" wire:confirm="¿Eliminar esta unidad?" class="p-1.5 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors" title="Eliminar">
-                                <flux:icon name="trash" class="size-4" />
-                            </button>
-                        </div>
+    {{-- Unidades Registradas --}}
+    <div class="bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-3xl p-8 shadow-sm flex flex-col">
+        <h3 class="text-base font-bold text-zinc-900 dark:text-white mb-4">Unidades Registradas</h3>
+        <div class="flex-1 space-y-2">
+            @forelse($unitsList as $u)
+                <div class="flex items-center gap-3 py-2 border-b border-zinc-50 dark:border-zinc-800 last:border-0">
+                    @if($u['image'])
+                        <img src="{{ asset('storage/' . $u['image']) }}" class="size-8 rounded-lg object-cover" />
+                    @else
+                        <flux:icon name="home" class="size-5 text-zinc-400" />
+                    @endif
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold text-zinc-800 dark:text-white">{{ $u['name'] }}</p>
+                        <p class="text-xs text-zinc-400">{{ ucfirst($u['type']) }} - ${{ number_format($u['price_per_day'], 2) }}/día</p>
                     </div>
-                @empty
-                    <div class="text-center py-6">
-                        <flux:icon name="home" class="size-10 text-zinc-200 mx-auto mb-2" />
-                        <p class="text-sm text-zinc-400">No hay unidades registradas aún</p>
+                    <div class="flex gap-1">
+                        <button wire:click="editUnit({{ $u['id'] }})" class="p-1.5 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors" title="Editar">
+                            <flux:icon name="pencil" class="size-4" />
+                        </button>
+                        <button wire:click="deleteUnit({{ $u['id'] }})" wire:confirm="¿Eliminar esta unidad?" class="p-1.5 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors" title="Eliminar">
+                            <flux:icon name="trash" class="size-4" />
+                        </button>
                     </div>
-                @endforelse
-            </div>
-            
-            {{-- Paginación --}}
-            <div class="mt-4">
-                {{ $unitsList->links() }}
-            </div>
+                </div>
+            @empty
+                <div class="text-center py-6">
+                    <flux:icon name="home" class="size-10 text-zinc-200 mx-auto mb-2" />
+                    <p class="text-sm text-zinc-400">No hay unidades registradas aún</p>
+                </div>
+            @endforelse
         </div>
+
+        {{-- Paginación --}}
+        @if($unitsList->hasPages())
+            <div class="mt-auto pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                <div class="flex items-center justify-between text-xs text-zinc-500 dark:text-zinc-400 mb-2">
+                    <span>Mostrando {{ $unitsList->firstItem() }} a {{ $unitsList->lastItem() }} de {{ $unitsList->total() }} unidades</span>
+                </div>
+                <div class="flex items-center justify-center gap-1">
+                    @if($unitsList->onFirstPage())
+                        <span class="px-3 py-1.5 rounded-lg text-zinc-300 dark:text-zinc-600 cursor-not-allowed">&lsaquo;</span>
+                    @else
+                        <button wire:click="previousPage" class="px-3 py-1.5 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">&lsaquo;</span>
+                    @endif
+
+                    @foreach($unitsList->getUrlRange(max(1, $unitsList->currentPage() - 2), min($unitsList->lastPage(), $unitsList->currentPage() + 2)) as $page => $url)
+                        @if($page == $unitsList->currentPage())
+                            <span class="px-3 py-1.5 rounded-lg bg-[#4a5d41] text-white font-bold text-xs">{{ $page }}</span>
+                        @else
+                            <button wire:click="gotoPage({{ $page }})" class="px-3 py-1.5 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors text-xs">{{ $page }}</button>
+                        @endif
+                    @endforeach
+
+                    @if($unitsList->hasMorePages())
+                        <button wire:click="nextPage" class="px-3 py-1.5 rounded-lg text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">&rsaquo;</span>
+                    @else
+                        <span class="px-3 py-1.5 rounded-lg text-zinc-300 dark:text-zinc-600 cursor-not-allowed">&rsaquo;</span>
+                    @endif
+                </div>
+            </div>
+        @endif
     </div>
 
     {{-- Modal para Editar Unidad --}}
