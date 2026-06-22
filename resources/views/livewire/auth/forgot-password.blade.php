@@ -18,12 +18,12 @@ new #[Layout('components.layouts.auth')] class extends Component {
 
         Password::sendResetLink($this->only('email'));
 
-        session()->flash('status', __('Se enviará un enlace de recuperación si la cuenta existe.'));
+        session()->flash('status', __('A reset link will be sent if the account exists.'));
     }
 }; ?>
 
 <div class="flex flex-col gap-6">
-    <x-auth-header title="¿Olvidaste tu contraseña?" description="Ingresa tu correo para recibir un enlace de recuperación" />
+    <x-auth-header title="Forgot password" description="Enter your email to receive a password reset link" />
 
     <!-- Session Status -->
     <x-auth-session-status class="text-center" :status="session('status')" />
@@ -31,14 +31,14 @@ new #[Layout('components.layouts.auth')] class extends Component {
     <form wire:submit="sendPasswordResetLink" class="flex flex-col gap-6">
         <!-- Email Address -->
         <div class="grid gap-2">
-            <flux:input wire:model="email" label="{{ __('Correo electrónico') }}" type="email" name="email" required autofocus placeholder="email@example.com" />
+            <flux:input wire:model="email" label="{{ __('Email Address') }}" type="email" name="email" required autofocus placeholder="email@example.com" />
         </div>
 
-        <flux:button variant="primary" type="submit" class="w-full">{{ __('Enviar enlace de recuperación') }}</flux:button>
+        <flux:button variant="primary" type="submit" class="w-full">{{ __('Email password reset link') }}</flux:button>
     </form>
 
     <div class="space-x-1 text-center text-sm text-zinc-400">
-        O, volver a
-        <x-text-link href="{{ route('login') }}">iniciar sesión</x-text-link>
+        Or, return to
+        <x-text-link href="{{ route('login') }}">log in</x-text-link>
     </div>
 </div>

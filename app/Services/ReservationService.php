@@ -35,7 +35,7 @@ class ReservationService
         $checkIn = Carbon::parse($data['check_in']);
         $checkOut = Carbon::parse($data['check_out']);
         $nights = max(1, $checkIn->diffInDays($checkOut));
-        $rate = $unit->price_per_day ?? 0;
+        $rate = self::RATES[$unit->type] ?? 0;
 
         return Reservation::create([
             'unit_id' => $unit->id,

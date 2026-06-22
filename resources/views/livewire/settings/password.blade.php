@@ -41,12 +41,12 @@ new #[Layout('components.layouts.app')] class extends Component {
 <section class="w-full">
     @include('partials.settings-heading')
 
-    <x-settings.layout heading="Actualizar contraseña" subheading="Asegúrate de usar una contraseña larga y aleatoria para mantener tu cuenta segura">
+    <x-settings.layout heading="Update password" subheading="Ensure your account is using a long, random password to stay secure">
         <form wire:submit="updatePassword" class="mt-6 space-y-6">
             <flux:input
                 wire:model="current_password"
                 id="update_password_current_passwordpassword"
-                label="{{ __('Contraseña actual') }}"
+                label="{{ __('Current password') }}"
                 type="password"
                 name="current_password"
                 required
@@ -55,7 +55,7 @@ new #[Layout('components.layouts.app')] class extends Component {
             <flux:input
                 wire:model="password"
                 id="update_password_password"
-                label="{{ __('Nueva contraseña') }}"
+                label="{{ __('New password') }}"
                 type="password"
                 name="password"
                 required
@@ -64,7 +64,7 @@ new #[Layout('components.layouts.app')] class extends Component {
             <flux:input
                 wire:model="password_confirmation"
                 id="update_password_password_confirmation"
-                label="{{ __('Confirmar contraseña') }}"
+                label="{{ __('Confirm Password') }}"
                 type="password"
                 name="password_confirmation"
                 required
@@ -73,11 +73,11 @@ new #[Layout('components.layouts.app')] class extends Component {
 
             <div class="flex items-center gap-4">
                 <div class="flex items-center justify-end">
-                    <flux:button variant="primary" type="submit" class="w-full">{{ __('Guardar') }}</flux:button>
+                    <flux:button variant="primary" type="submit" class="w-full">{{ __('Save') }}</flux:button>
                 </div>
 
                 <x-action-message class="me-3" on="password-updated">
-                    {{ __('Guardado.') }}
+                    {{ __('Saved.') }}
                 </x-action-message>
             </div>
         </form>
