@@ -17,7 +17,7 @@
                     {{-- Logo --}}
                     <tr>
                         <td align="center" style="padding-bottom: 28px;">
-                            <img src="{{ $logoUrl }}" alt="RV Park San Nicolás" width="80" style="display: block; width: 80px; height: auto;" />
+                            <img src="{{ $logoUrl }}" alt="RV Park San Nicolás" width="140" style="display: block; width: 140px; height: auto;" />
                         </td>
                     </tr>
 
