@@ -73,7 +73,7 @@ new #[Layout('components.layouts.app')] class extends Component {
 <section class="w-full">
     @include('partials.settings-heading')
 
-    <x-settings.layout heading="{{ __('Profile') }}" subheading="{{ __('Update your account\'s profile information') }}">
+    <x-settings.layout heading="Perfil" subheading="Actualiza tu nombre y correo electrónico">
         <form wire:submit="updateProfileInformation" class="my-6 w-full space-y-6">
             <flux:input wire:model="name" label="{{ __('Nombre') }}" type="text" name="name" required autofocus autocomplete="name" />
 
@@ -83,19 +83,19 @@ new #[Layout('components.layouts.app')] class extends Component {
                 @if (auth()->user() instanceof \Illuminate\Contracts\Auth\MustVerifyEmail &&! auth()->user()->hasVerifiedEmail())
                     <div>
                         <p class="mt-2 text-sm text-gray-800">
-                            {{ __('Your email address is unverified.') }}
+                            {{ __('Tu correo electrónico no está verificado.') }}
 
                             <button
                                 wire:click.prevent="resendVerificationNotification"
                                 class="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-hidden focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                             >
-                                {{ __('Click here to re-send the verification email.') }}
+                                {{ __('Haz clic aquí para reenviar el correo de verificación.') }}
                             </button>
                         </p>
 
                         @if (session('status') === 'verification-link-sent')
                             <p class="mt-2 text-sm font-medium text-green-600">
-                                {{ __('A new verification link has been sent to your email address.') }}
+                                {{ __('Se ha enviado un nuevo enlace de verificación a tu correo electrónico.') }}
                             </p>
                         @endif
                     </div>
@@ -108,7 +108,7 @@ new #[Layout('components.layouts.app')] class extends Component {
                 </div>
 
                 <x-action-message class="me-3" on="profile-updated">
-                    {{ __('Saved.') }}
+                    {{ __('Guardado.') }}
                 </x-action-message>
             </div>
         </form>

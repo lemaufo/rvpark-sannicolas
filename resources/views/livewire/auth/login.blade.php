@@ -73,14 +73,14 @@ new #[Layout('components.layouts.auth')] class extends Component {
 }; ?>
 
 <div class="flex flex-col gap-6">
-    <x-auth-header title="Iniciar sesión en tu cuenta" description="Ingresa tu correo y contraseña para iniciar sesión" />
+    <x-auth-header title="Inicia sesión en tu cuenta" description="Ingresa tu correo y contraseña para iniciar sesión" />
 
-    <!-- Session Status --> 
+    <!-- Session Status -->
     <x-auth-session-status class="text-center" :status="session('status')" />
 
     <form wire:submit="login" class="flex flex-col gap-6">
         <!-- Email Address -->
-        <flux:input wire:model="email" label="{{ __('Correo electronico') }}" type="email" name="email" required autofocus
+        <flux:input wire:model="email" label="{{ __('Correo electrónico') }}" type="email" name="email" required autofocus
             autocomplete="email" placeholder="email@example.com" />
 
         <!-- Password -->
@@ -102,4 +102,5 @@ new #[Layout('components.layouts.auth')] class extends Component {
             <flux:button variant="primary" type="submit" class="w-full">{{ __('Iniciar sesión') }}</flux:button>
         </div>
     </form>
+
 </div>
