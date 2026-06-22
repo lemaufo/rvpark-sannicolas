@@ -1,5 +1,5 @@
 @php
-    $logoUrl = 'https://raw.githubusercontent.com/lemaufo/rvpark-sannicolas/dev/public/logo_email.jpg';
+    $logoUrl = 'https://raw.githubusercontent.com/lemaufo/rvpark-sannicolas/dev/public/logo_email.png';
 @endphp
 <!DOCTYPE html>
 <html lang="es">
