@@ -96,33 +96,56 @@ new class extends Component {
             'check_out' => 'required|date|after:check_in',
             'check_out_time' => 'nullable|date_format:H:i',
             'status' => 'required|in:pending,confirmed',
+        ], [
+            'unit_id.required' => 'Selecciona una unidad.',
+            'unit_id.exists' => 'La unidad seleccionada no es válida.',
+            'guest_name.required' => 'El nombre del huésped es obligatorio.',
+            'guest_name.max' => 'El nombre no debe exceder 120 caracteres.',
+            'guest_phone.required' => 'El teléfono del huésped es obligatorio.',
+            'guest_phone.max' => 'El teléfono no debe exceder 20 caracteres.',
+            'check_in.required' => 'La fecha de check-in es obligatoria.',
+            'check_in.date' => 'La fecha de check-in debe ser válida.',
+            'check_in.before' => 'La fecha de check-in debe ser anterior al check-out.',
+            'check_in_time.required' => 'La hora de check-in es obligatoria para reservas confirmadas.',
+            'check_in_time.date_format' => 'La hora de check-in debe tener formato HH:mm.',
+            'check_out.required' => 'La fecha de check-out es obligatoria.',
+            'check_out.date' => 'La fecha de check-out debe ser válida.',
+            'check_out.after' => 'La fecha de check-out debe ser posterior al check-in.',
+            'check_out_time.date_format' => 'La hora de check-out debe tener formato HH:mm.',
+            'status.required' => 'El estatus es obligatorio.',
+            'status.in' => 'El estatus debe ser Pendiente o Confirmada.',
         ]);
         
         $this->checkAvailability();
         if ($this->errorMessage) {
+            $this->dispatch('swal-error', $this->errorMessage);
             return;
         }
         
-        $this->calculateAmount();
-        
-        Reservation::create([
-            'unit_id' => $this->unit_id,
-            'guest_name' => $this->guest_name,
-            'guest_phone' => $this->guest_phone,
-            'check_in' => $this->check_in,
-            'check_in_time' => $this->status === 'confirmed' ? ($this->check_in_time ?: null) : null,
-            'check_out' => $this->check_out,
-            'check_out_time' => $this->check_out_time ?: null,
-            'status' => $this->status,
-            'total_amount' => $this->total_amount
-        ]);
-        
-        $this->reset(['unit_id', 'guest_name', 'guest_phone', 'check_in', 'check_in_time', 'check_out', 'check_out_time', 'status', 'total_amount']);
-        $this->status = 'confirmed'; // reset to default
-        $this->showModal = false;
-        
-        session()->flash('message', 'Reserva registrada con éxito.');
-        $this->dispatch('reservation-created');
+        try {
+            $this->calculateAmount();
+            
+            Reservation::create([
+                'unit_id' => $this->unit_id,
+                'guest_name' => $this->guest_name,
+                'guest_phone' => $this->guest_phone,
+                'check_in' => $this->check_in,
+                'check_in_time' => $this->status === 'confirmed' ? ($this->check_in_time ?: null) : null,
+                'check_out' => $this->check_out,
+                'check_out_time' => $this->check_out_time ?: null,
+                'status' => $this->status,
+                'total_amount' => $this->total_amount
+            ]);
+            
+            $this->reset(['unit_id', 'guest_name', 'guest_phone', 'check_in', 'check_in_time', 'check_out', 'check_out_time', 'status', 'total_amount']);
+            $this->status = 'confirmed';
+            $this->showModal = false;
+            
+            $this->dispatch('swal-success', ['title' => 'Reserva registrada', 'message' => 'La reserva se ha creado exitosamente.']);
+            $this->dispatch('reservation-created');
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo registrar la reserva. Intenta de nuevo.');
+        }
     }
 }; ?>
 

@@ -23,15 +23,27 @@ new #[Layout('components.layouts.auth')] class extends Component {
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . User::class],
             'password' => ['required', 'string', 'confirmed', Rules\Password::defaults()],
+        ], [
+            'name.required' => 'El nombre es obligatorio.',
+            'name.max' => 'El nombre no debe exceder 255 caracteres.',
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'Ingresa un correo electrónico válido.',
+            'email.unique' => 'Este correo ya está registrado.',
+            'password.required' => 'La contraseña es obligatoria.',
+            'password.confirmed' => 'Las contraseñas no coinciden.',
         ]);
 
-        $validated['password'] = Hash::make($validated['password']);
+        try {
+            $validated['password'] = Hash::make($validated['password']);
 
-        event(new Registered(($user = User::create($validated))));
+            event(new Registered(($user = User::create($validated))));
 
-        Auth::login($user);
+            Auth::login($user);
 
-        $this->redirect(route('dashboard', absolute: false), navigate: true);
+            $this->redirect(route('dashboard', absolute: false), navigate: true);
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo crear la cuenta. Intenta de nuevo.');
+        }
     }
 }; ?>
 
@@ -45,11 +57,13 @@ new #[Layout('components.layouts.auth')] class extends Component {
         <!-- Name -->
         <div class="grid gap-2">
             <flux:input wire:model="name" id="name" label="{{ __('Nombre') }}" type="text" name="name" required autofocus autocomplete="name" placeholder="Nombre completo" />
+            @error('name') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
         </div>
 
         <!-- Email Address -->
         <div class="grid gap-2">
             <flux:input wire:model="email" id="email" label="{{ __('Correo electrónico') }}" type="email" name="email" required autocomplete="email" placeholder="email@example.com" />
+            @error('email') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
         </div>
 
         <!-- Password -->
@@ -64,6 +78,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
                 autocomplete="new-password"
                 placeholder="Contraseña"
             />
+            @error('password') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
         </div>
 
         <!-- Confirm Password -->

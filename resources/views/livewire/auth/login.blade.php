@@ -24,7 +24,14 @@ new #[Layout('components.layouts.auth')] class extends Component {
      */
     public function login(): void
     {
-        $this->validate();
+        $this->validate([
+            'email' => 'required|string|email',
+            'password' => 'required|string',
+        ], [
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'Ingresa un correo electrónico válido.',
+            'password.required' => 'La contraseña es obligatoria.',
+        ]);
 
         $this->ensureIsNotRateLimited();
 
@@ -32,7 +39,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'email' => __('auth.failed'),
+                'email' => __('Correo o contraseña incorrectos.'),
             ]);
         }
 
@@ -56,10 +63,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
         $seconds = RateLimiter::availableIn($this->throttleKey());
 
         throw ValidationException::withMessages([
-            'email' => __('auth.throttle', [
-                'seconds' => $seconds,
-                'minutes' => ceil($seconds / 60),
-            ]),
+            'email' => "Demasiados intentos. Por favor espera {$seconds} segundos.",
         ]);
     }
 
@@ -82,11 +86,13 @@ new #[Layout('components.layouts.auth')] class extends Component {
         <!-- Email Address -->
         <flux:input wire:model="email" label="{{ __('Correo electrónico') }}" type="email" name="email" required autofocus
             autocomplete="email" placeholder="email@example.com" />
+        @error('email') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
 
         <!-- Password -->
         <div class="relative">
             <flux:input wire:model="password" label="{{ __('Contraseña') }}" type="password" name="password" required
                 autocomplete="current-password" placeholder="Contraseña" />
+            @error('password') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
 
             @if (Route::has('password.request'))
                 <x-text-link class="absolute right-0 top-0" href="{{ route('password.request') }}">

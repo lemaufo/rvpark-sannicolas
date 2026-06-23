@@ -129,14 +129,20 @@ new class extends Component {
 
     public function cancelReservation($id, $reason)
     {
-        $reservation = \App\Models\Reservation::find($id);
-        if ($reservation && $reservation->status !== 'cancelled') {
-            $service = app(ReservationService::class);
-            $service->cancelReservation($reservation, auth()->id(), $reason);
-            Log::info("Reserva cancelada: {$id}. Motivo: {$reason}. Usuario: " . (auth()->user()->name ?? 'N/A'));
-            $this->loadData();
-            // Dispatch event to Alpine to update local events state
-            $this->dispatch('reservation-cancelled', ['events' => $this->events, 'allReservations' => $this->allReservations]);
+        try {
+            $reservation = \App\Models\Reservation::find($id);
+            if ($reservation && $reservation->status !== 'cancelled') {
+                $service = app(ReservationService::class);
+                $service->cancelReservation($reservation, auth()->id(), $reason);
+                Log::info("Reserva cancelada: {$id}. Motivo: {$reason}. Usuario: " . (auth()->user()->name ?? 'N/A'));
+                $this->loadData();
+                $this->dispatch('reservation-cancelled', ['events' => $this->events, 'allReservations' => $this->allReservations]);
+                $this->dispatch('swal-success', ['title' => 'Reserva cancelada', 'message' => 'La reserva se ha cancelado exitosamente.']);
+            } else {
+                $this->dispatch('swal-error', 'No se pudo cancelar la reserva. Es posible que ya esté cancelada.');
+            }
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo cancelar la reserva. Intenta de nuevo.');
         }
     }
 };
@@ -900,7 +906,10 @@ class="space-y-8">
                 },
                 
                 submitCancel() {
-                    if (!this.cancelReason.trim()) return;
+                    if (!this.cancelReason.trim()) {
+                        showSwalErrorToast('Campo obligatorio', 'Por favor ingresa el motivo de cancelación.');
+                        return;
+                    }
                     Livewire.find(document.querySelector('[wire\\:id]').getAttribute('wire:id')).call('cancelReservation', this.cancelReservationId, this.cancelReason);
                 },
 
@@ -921,6 +930,7 @@ class="space-y-8">
                         URL.revokeObjectURL(a.href);
                     } catch (e) {
                         console.error('Error downloading ticket:', e);
+                        showSwalErrorToast('Error', 'No se pudo descargar el ticket. Intenta de nuevo.');
                     }
                 },
 

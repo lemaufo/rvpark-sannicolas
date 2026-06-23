@@ -14,11 +14,16 @@ new #[Layout('components.layouts.auth')] class extends Component {
     {
         $this->validate([
             'email' => ['required', 'string', 'email'],
+        ], [
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'Ingresa un correo electrónico válido.',
         ]);
 
         Password::sendResetLink($this->only('email'));
 
         session()->flash('status', __('Se enviará un enlace de recuperación si la cuenta existe.'));
+
+        $this->reset('email');
     }
 }; ?>
 
@@ -32,6 +37,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
         <!-- Email Address -->
         <div class="grid gap-2">
             <flux:input wire:model="email" label="{{ __('Correo electrónico') }}" type="email" name="email" required autofocus placeholder="email@example.com" />
+            @error('email') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
         </div>
 
         <flux:button variant="primary" type="submit" class="w-full">{{ __('Enviar enlace de recuperación') }}</flux:button>

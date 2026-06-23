@@ -90,41 +90,67 @@ new class extends Component {
             'guest_name' => 'required|string',
             'check_in' => 'required|date',
             'check_out' => 'required|date|after:check_in',
+        ], [
+            'guest_name.required' => 'El nombre del huésped es obligatorio.',
+            'guest_name.string' => 'El nombre del huésped debe ser un texto.',
+            'check_in.required' => 'La fecha de check-in es obligatoria.',
+            'check_in.date' => 'La fecha de check-in debe ser una fecha válida.',
+            'check_out.required' => 'La fecha de check-out es obligatoria.',
+            'check_out.date' => 'La fecha de check-out debe ser una fecha válida.',
+            'check_out.after' => 'La fecha de check-out debe ser posterior al check-in.',
         ]);
 
-        \App\Models\Reservation::create([
-            'guest_name' => $this->guest_name,
-            'guest_phone' => $this->guest_phone,
-            'unit_id' => $this->selectedUnitId,
-            'check_in' => $this->check_in,
-            'check_out' => $this->check_out,
-            'status' => 'checked_in',
-            'total_amount' => $this->total_amount ?: 0,
-        ]);
+        try {
+            \App\Models\Reservation::create([
+                'guest_name' => $this->guest_name,
+                'guest_phone' => $this->guest_phone,
+                'unit_id' => $this->selectedUnitId,
+                'check_in' => $this->check_in,
+                'check_out' => $this->check_out,
+                'status' => 'checked_in',
+                'total_amount' => $this->total_amount ?: 0,
+            ]);
 
-        $unit = Unit::find($this->selectedUnitId);
-        if ($unit) {
-            $unit->update(['status' => 'occupied']);
+            $unit = Unit::find($this->selectedUnitId);
+            if ($unit) {
+                $unit->update(['status' => 'occupied']);
+            }
+
+            $this->loadData();
+            $this->dispatch('swal-success', ['title' => 'Reservación creada', 'message' => 'La reservación se ha registrado exitosamente.']);
+            \Flux::modal('unit-modal')->close();
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo crear la reservación. Intenta de nuevo.');
         }
-
-        $this->loadData();
-        \Flux::modal('unit-modal')->close();
     }
 
     public function markAs($status)
     {
         if ($this->selectedUnitId) {
-            $unit = Unit::find($this->selectedUnitId);
-            if ($unit) {
-                // Sync reservations: if unit is no longer occupied, check out active guests
-                if ($status === 'available' || $status === 'cleaning') {
-                    \App\Models\Reservation::where('unit_id', $this->selectedUnitId)
-                        ->where('status', 'checked_in')
-                        ->update(['status' => 'checked_out']);
-                }
+            try {
+                $unit = Unit::find($this->selectedUnitId);
+                if ($unit) {
+                    if ($status === 'available' || $status === 'cleaning') {
+                        \App\Models\Reservation::where('unit_id', $this->selectedUnitId)
+                            ->where('status', 'checked_in')
+                            ->update(['status' => 'checked_out']);
+                    }
 
-                $unit->update(['status' => $status]);
-                $this->loadData();
+                    $unit->update(['status' => $status]);
+                    $this->loadData();
+
+                    $statusLabels = [
+                        'available' => 'Disponible',
+                        'occupied' => 'Ocupado',
+                        'cleaning' => 'Limpieza',
+                    ];
+                    $this->dispatch('swal-success', [
+                        'title' => 'Estado actualizado',
+                        'message' => 'Unidad marcada como ' . ($statusLabels[$status] ?? $status) . '.',
+                    ]);
+                }
+            } catch (\Exception $e) {
+                $this->dispatch('swal-error', 'No se pudo actualizar el estado de la unidad. Intenta de nuevo.');
             }
         }
     }
@@ -346,6 +372,7 @@ new class extends Component {
                                 <label
                                     class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Huésped</label>
                                 <flux:input wire:model="guest_name" placeholder="Nombre completo" required />
+                                @error('guest_name') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                             </div>
 
                             <div class="grid grid-cols-2 gap-4">
@@ -353,11 +380,13 @@ new class extends Component {
                                     <label
                                         class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Check-in</label>
                                     <flux:input type="date" wire:model="check_in" required />
+                                    @error('check_in') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                                 </div>
                                 <div>
                                     <label
                                         class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Check-out</label>
                                     <flux:input type="date" wire:model="check_out" required />
+                                    @error('check_out') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                                 </div>
                             </div>
 

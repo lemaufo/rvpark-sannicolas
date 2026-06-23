@@ -19,7 +19,7 @@
         .center { text-align: center; }
         .bold { font-weight: bold; }
         .divider { border-top: 1px dashed #999; margin: 8px 0; }
-        .logo { width: 60px; display: block; margin: 0 auto 5px; }
+        .logo { width: 120px; display: block; margin: 0 auto 5px; }
         .small { font-size: 9px; }
         .large { font-size: 14px; }
         .title { font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
@@ -34,7 +34,7 @@
                 <img src="{{ $logoData }}" class="logo" />
             @endif
             <div class="title">RV Park San Nicolás</div>
-            <div class="small">Tel: (XXX) XXX-XXXX</div>
+            <div class="small">Tel: 967 114 75 51</div>
             <div class="small">www.rvparksannicolas.com</div>
         </div>
 

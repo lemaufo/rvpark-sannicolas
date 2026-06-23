@@ -38,17 +38,30 @@ new #[Layout('components.layouts.app')] class extends Component {
                 'max:255',
                 Rule::unique(User::class)->ignore($user->id)
             ],
+        ], [
+            'name.required' => 'El nombre es obligatorio.',
+            'name.string' => 'El nombre debe ser un texto.',
+            'name.max' => 'El nombre no debe exceder 255 caracteres.',
+            'email.required' => 'El correo electrónico es obligatorio.',
+            'email.email' => 'Ingresa un correo electrónico válido.',
+            'email.max' => 'El correo no debe exceder 255 caracteres.',
+            'email.unique' => 'Este correo ya está registrado por otro usuario.',
         ]);
 
-        $user->fill($validated);
+        try {
+            $user->fill($validated);
 
-        if ($user->isDirty('email')) {
-            $user->email_verified_at = null;
+            if ($user->isDirty('email')) {
+                $user->email_verified_at = null;
+            }
+
+            $user->save();
+
+            $this->dispatch('swal-success', ['title' => 'Perfil actualizado', 'message' => 'Tu información de perfil se ha guardado correctamente.']);
+            $this->dispatch('profile-updated', name: $user->name);
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo actualizar el perfil. Intenta de nuevo.');
         }
-
-        $user->save();
-
-        $this->dispatch('profile-updated', name: $user->name);
     }
 
     /**
@@ -56,17 +69,22 @@ new #[Layout('components.layouts.app')] class extends Component {
      */
     public function resendVerificationNotification(): void
     {
-        $user = Auth::user();
+        try {
+            $user = Auth::user();
 
-        if ($user->hasVerifiedEmail()) {
-            $this->redirectIntended(default: route('dashboard', absolute: false));
+            if ($user->hasVerifiedEmail()) {
+                $this->redirectIntended(default: route('dashboard', absolute: false));
 
-            return;
+                return;
+            }
+
+            $user->sendEmailVerificationNotification();
+
+            Session::flash('status', 'verification-link-sent');
+            $this->dispatch('swal-success', ['title' => 'Correo enviado', 'message' => 'Se ha enviado un nuevo enlace de verificación a tu correo electrónico.']);
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo enviar el correo de verificación. Intenta de nuevo.');
         }
-
-        $user->sendEmailVerificationNotification();
-
-        Session::flash('status', 'verification-link-sent');
     }
 }; ?>
 
@@ -76,9 +94,11 @@ new #[Layout('components.layouts.app')] class extends Component {
     <x-settings.layout heading="Perfil" subheading="Actualiza tu nombre y correo electrónico">
         <form wire:submit="updateProfileInformation" class="my-6 w-full space-y-6">
             <flux:input wire:model="name" label="{{ __('Nombre') }}" type="text" name="name" required autofocus autocomplete="name" />
+            @error('name') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
 
             <div>
                 <flux:input wire:model="email" label="{{ __('Correo electrónico') }}" type="email" name="email" required autocomplete="email" />
+                @error('email') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
 
                 @if (auth()->user() instanceof \Illuminate\Contracts\Auth\MustVerifyEmail &&! auth()->user()->hasVerifiedEmail())
                     <div>

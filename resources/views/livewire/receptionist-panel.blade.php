@@ -36,60 +36,85 @@ new class extends Component {
             'unit_id' => 'required|exists:units,id',
             'check_in' => 'required|date',
             'check_out' => 'required|date|after:check_in',
+        ], [
+            'guest_name.required' => 'El nombre del huésped es obligatorio.',
+            'guest_name.string' => 'El nombre del huésped debe ser un texto.',
+            'unit_id.required' => 'Selecciona una unidad.',
+            'unit_id.exists' => 'La unidad seleccionada no es válida.',
+            'check_in.required' => 'La fecha de check-in es obligatoria.',
+            'check_in.date' => 'La fecha de check-in debe ser válida.',
+            'check_out.required' => 'La fecha de check-out es obligatoria.',
+            'check_out.date' => 'La fecha de check-out debe ser válida.',
+            'check_out.after' => 'La fecha de check-out debe ser posterior al check-in.',
         ]);
 
-        Reservation::create([
-            'guest_name' => $this->guest_name,
-            'guest_phone' => $this->guest_phone,
-            'unit_id' => $this->unit_id,
-            'check_in' => $this->check_in,
-            'check_out' => $this->check_out,
-            'status' => 'pending',
-            'total_amount' => $this->total_amount ?: 0,
-        ]);
+        try {
+            Reservation::create([
+                'guest_name' => $this->guest_name,
+                'guest_phone' => $this->guest_phone,
+                'unit_id' => $this->unit_id,
+                'check_in' => $this->check_in,
+                'check_out' => $this->check_out,
+                'status' => 'pending',
+                'total_amount' => $this->total_amount ?: 0,
+            ]);
 
-        $this->reset(['guest_name', 'guest_phone', 'unit_id', 'check_in', 'check_out', 'total_amount']);
-        $this->loadData();
-        \Flux::modal('new-reservation')->close();
+            $this->reset(['guest_name', 'guest_phone', 'unit_id', 'check_in', 'check_out', 'total_amount']);
+            $this->loadData();
+            $this->dispatch('swal-success', ['title' => 'Reserva creada', 'message' => 'La reservación se ha registrado exitosamente.']);
+            \Flux::modal('new-reservation')->close();
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo crear la reservación. Intenta de nuevo.');
+        }
     }
 
     public function checkIn($id)
     {
-        $res = Reservation::find($id);
-        if ($res && in_array($res->status, ['pending', 'confirmed'])) {
-            $res->update(['status' => 'checked_in']);
+        try {
+            $res = Reservation::find($id);
+            if ($res && in_array($res->status, ['pending', 'confirmed'])) {
+                $res->update(['status' => 'checked_in']);
 
-            $unit = Unit::find($res->unit_id);
-            if ($unit) {
-                $unit->update(['status' => 'occupied']);
-                OperationalStatus::create([
-                    'unit_id' => $unit->id,
-                    'status' => 'occupied',
-                    'user_id' => auth()->id(),
-                    'changed_at' => now()
-                ]);
+                $unit = Unit::find($res->unit_id);
+                if ($unit) {
+                    $unit->update(['status' => 'occupied']);
+                    OperationalStatus::create([
+                        'unit_id' => $unit->id,
+                        'status' => 'occupied',
+                        'user_id' => auth()->id(),
+                        'changed_at' => now()
+                    ]);
+                }
+                $this->loadData();
+                $this->dispatch('swal-success', ['title' => 'Check-In realizado', 'message' => 'El huésped ha sido registrado exitosamente.']);
             }
-            $this->loadData();
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo realizar el check-in. Intenta de nuevo.');
         }
     }
 
     public function checkOut($id)
     {
-        $res = Reservation::find($id);
-        if ($res && $res->status == 'checked_in') {
-            $res->update(['status' => 'checked_out']);
+        try {
+            $res = Reservation::find($id);
+            if ($res && $res->status == 'checked_in') {
+                $res->update(['status' => 'checked_out']);
 
-            $unit = Unit::find($res->unit_id);
-            if ($unit) {
-                $unit->update(['status' => 'cleaning']);
-                OperationalStatus::create([
-                    'unit_id' => $unit->id,
-                    'status' => 'cleaning',
-                    'user_id' => auth()->id(),
-                    'changed_at' => now()
-                ]);
+                $unit = Unit::find($res->unit_id);
+                if ($unit) {
+                    $unit->update(['status' => 'cleaning']);
+                    OperationalStatus::create([
+                        'unit_id' => $unit->id,
+                        'status' => 'cleaning',
+                        'user_id' => auth()->id(),
+                        'changed_at' => now()
+                    ]);
+                }
+                $this->loadData();
+                $this->dispatch('swal-success', ['title' => 'Check-Out realizado', 'message' => 'El huésped ha dado salida exitosamente.']);
             }
-            $this->loadData();
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo realizar el check-out. Intenta de nuevo.');
         }
     }
 }; ?>

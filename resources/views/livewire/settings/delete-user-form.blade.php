@@ -14,11 +14,18 @@ new class extends Component {
     {
         $this->validate([
             'password' => ['required', 'string', 'current_password'],
+        ], [
+            'password.required' => 'La contraseña es obligatoria para confirmar.',
+            'password.current_password' => 'La contraseña ingresada no coincide con tu contraseña actual.',
         ]);
 
-        tap(Auth::user(), $logout(...))->delete();
+        try {
+            tap(Auth::user(), $logout(...))->delete();
 
-        $this->redirect('/', navigate: true);
+            $this->redirect('/', navigate: true);
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo eliminar la cuenta. Intenta de nuevo.');
+        }
     }
 }; ?>
 
@@ -45,6 +52,7 @@ new class extends Component {
             </div>
 
             <flux:input wire:model="password" id="password" label="{{ __('Contraseña') }}" type="password" name="password" />
+            @error('password') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
 
             <div class="flex justify-end space-x-2">
                 <flux:modal.close>

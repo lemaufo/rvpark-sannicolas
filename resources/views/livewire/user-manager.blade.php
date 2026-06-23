@@ -85,52 +85,63 @@ new class extends Component {
 
         $this->validate($rules, $messages);
 
-        $data = [
-            'name' => $this->name,
-            'email' => $this->email,
-            'role' => $this->role,
-        ];
+        try {
+            $data = [
+                'name' => $this->name,
+                'email' => $this->email,
+                'role' => $this->role,
+            ];
 
-        if ($this->password) {
-            $data['password'] = Hash::make($this->password);
-        }
-
-        if ($this->editingUserId) {
-            $existingUser = User::find($this->editingUserId);
-            if ($existingUser && $existingUser->role === 'admin') {
-                $data['role'] = 'admin'; // Forzar rol admin
-                unset($data['password']); // Evitar actualizar contraseña de admin
+            if ($this->password) {
+                $data['password'] = Hash::make($this->password);
             }
-            $existingUser->update($data);
-            session()->flash('message', 'Usuario actualizado correctamente.');
-        } else {
-            User::create($data);
-            session()->flash('message', 'Usuario creado correctamente.');
+
+            if ($this->editingUserId) {
+                $existingUser = User::find($this->editingUserId);
+                if ($existingUser && $existingUser->role === 'admin') {
+                    $data['role'] = 'admin';
+                    unset($data['password']);
+                }
+                $existingUser->update($data);
+                $this->dispatch('swal-success', ['title' => 'Usuario actualizado', 'message' => 'El usuario se ha actualizado correctamente.']);
+            } else {
+                User::create($data);
+                $this->dispatch('swal-success', ['title' => 'Usuario creado', 'message' => 'El usuario se ha creado correctamente.']);
+            }
+
+            $this->loadUsers();
+            $this->reset(['name', 'email', 'password', 'editingUserId', 'isEditingAdmin']);
+            $this->resetValidation();
+
+            \Flux::modal('create-user')->close();
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo guardar el usuario. Intenta de nuevo.');
         }
-
-        $this->loadUsers();
-        $this->reset(['name', 'email', 'password', 'editingUserId', 'isEditingAdmin']);
-        $this->resetValidation();
-
-        \Flux::modal('create-user')->close();
     }
     // Reset de contraseña (genera una nueva aleatoria)
     public function resetUserPassword($userId)
     {
-        $user = User::find($userId);
-        if (!$user || $user->role === 'admin') {
-            return;
+        try {
+            $user = User::find($userId);
+            if (!$user || $user->role === 'admin') {
+                $this->dispatch('swal-error', 'No se puede restablecer la contraseña de un administrador.');
+                return;
+            }
+
+            $newPassword = Str::random(12);
+            $user->update([
+                'password' => Hash::make($newPassword),
+            ]);
+
+            $this->dispatch('swal-success', [
+                'title' => 'Contraseña restablecida',
+                'message' => "Nueva contraseña para {$user->name}: {$newPassword}",
+            ]);
+
+            $this->loadUsers();
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo restablecer la contraseña. Intenta de nuevo.');
         }
-
-        $newPassword = Str::random(12);
-        $user->update([
-            'password' => Hash::make($newPassword),
-        ]);
-
-        // Mostrar la nueva contraseña en un flash message
-        session()->flash('password-reset', "Nueva contraseña para {$user->name}: <strong>{$newPassword}</strong>");
-
-        $this->loadUsers();
     }
 }; ?>
 
@@ -138,17 +149,11 @@ new class extends Component {
 
     {{-- Mensajes flash --}}
     @if (session()->has('message'))
-        <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 3000)" x-show="show"
-            class="mb-4 p-4 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-2xl border border-emerald-200 dark:border-emerald-800">
-            {{ session('message') }}
-        </div>
+        <div x-data x-init="$nextTick(() => { Swal.fire({ title: 'Éxito', text: '{{ session('message') }}', icon: 'success', confirmButtonColor: '#4a5d41', confirmButtonText: 'Aceptar', timer: 3000, timerProgressBar: true, showConfirmButton: false, toast: true, position: 'top-end' }); })" style="display:none;"></div>
     @endif
 
     @if (session()->has('password-reset'))
-        <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 6000)" x-show="show"
-            class="mb-4 p-4 bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400 rounded-2xl border border-orange-200 dark:border-orange-800">
-            {!! session('password-reset') !!}
-        </div>
+        <div x-data x-init="$nextTick(() => { Swal.fire({ title: 'Contraseña restablecida', html: '{!! session('password-reset') !!}', icon: 'info', confirmButtonColor: '#4a5d41', confirmButtonText: 'Aceptar', toast: false, position: 'center' }); })" style="display:none;"></div>
     @endif
 
     <div class="bg-white dark:bg-zinc-900 rounded-3xl border border-zinc-200 dark:border-zinc-800 overflow-hidden">
@@ -244,12 +249,15 @@ new class extends Component {
 
             <div class="space-y-4">
                 <flux:input wire:model="name" label="Nombre" placeholder="Nombre completo" />
+                @error('name') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
 
                 <flux:input wire:model="email" type="email" label="Correo" placeholder="correo@ejemplo.com" />
+                @error('email') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
 
                 @if (!$isEditingAdmin)
                     <flux:input wire:model="password" type="password"
                         label="{{ $editingUserId ? 'Nueva Contraseña (dejar vacío para no cambiar)' : 'Contraseña' }}" />
+                    @error('password') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
 
                     <div>
                         <label class="block mb-2 text-sm font-medium text-zinc-700 dark:text-zinc-300">
@@ -260,6 +268,7 @@ new class extends Component {
                             <option value="receptionist">Recepcionista</option>
                             <option value="admin">Administrador</option>
                         </select>
+                        @error('role') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                     </div>
                 @endif
 

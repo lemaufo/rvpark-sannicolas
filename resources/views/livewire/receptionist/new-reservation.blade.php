@@ -92,30 +92,49 @@ new class extends Component {
             'guest_phone' => 'required|string|max:20',
             'check_in' => 'required|date|before:check_out',
             'check_out' => 'required|date|after:check_in',
+        ], [
+            'unit_id.required' => 'Selecciona una unidad.',
+            'unit_id.exists' => 'La unidad seleccionada no es válida.',
+            'guest_name.required' => 'El nombre del huésped es obligatorio.',
+            'guest_name.max' => 'El nombre no debe exceder 120 caracteres.',
+            'guest_phone.required' => 'El teléfono del huésped es obligatorio.',
+            'guest_phone.max' => 'El teléfono no debe exceder 20 caracteres.',
+            'check_in.required' => 'La fecha de check-in es obligatoria.',
+            'check_in.date' => 'La fecha de check-in debe ser válida.',
+            'check_in.before' => 'La fecha de check-in debe ser anterior al check-out.',
+            'check_out.required' => 'La fecha de check-out es obligatoria.',
+            'check_out.date' => 'La fecha de check-out debe ser válida.',
+            'check_out.after' => 'La fecha de check-out debe ser posterior al check-in.',
         ]);
         
         $this->checkAvailability();
         if ($this->errorMessage) {
+            $this->dispatch('swal-error', $this->errorMessage);
             return;
         }
         
-        $this->calculateAmount();
-        
-        Reservation::create([
-            'unit_id' => $this->unit_id,
-            'guest_name' => $this->guest_name,
-            'guest_phone' => $this->guest_phone,
-            'check_in' => $this->check_in,
-            'check_out' => $this->check_out,
-            'status' => 'pending',
-            'total_amount' => $this->total_amount
-        ]);
-        
-        $this->reset(['unit_id', 'guest_name', 'guest_phone', 'check_in', 'check_out', 'total_amount']);
-        $this->showModal = false;
-        
-        $this->dispatch('reservation-created');
-        \Flux::modal('new-reservation')->close();
+        try {
+            $this->calculateAmount();
+            
+            Reservation::create([
+                'unit_id' => $this->unit_id,
+                'guest_name' => $this->guest_name,
+                'guest_phone' => $this->guest_phone,
+                'check_in' => $this->check_in,
+                'check_out' => $this->check_out,
+                'status' => 'pending',
+                'total_amount' => $this->total_amount
+            ]);
+            
+            $this->reset(['unit_id', 'guest_name', 'guest_phone', 'check_in', 'check_out', 'total_amount']);
+            $this->showModal = false;
+            
+            $this->dispatch('swal-success', ['title' => 'Reserva registrada', 'message' => 'La reserva se ha creado exitosamente.']);
+            $this->dispatch('reservation-created');
+            \Flux::modal('new-reservation')->close();
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo registrar la reserva. Intenta de nuevo.');
+        }
     }
 }; ?>
 

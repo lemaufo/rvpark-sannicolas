@@ -21,6 +21,11 @@ new #[Layout('components.layouts.app')] class extends Component {
             $validated = $this->validate([
                 'current_password' => ['required', 'string', 'current_password'],
                 'password' => ['required', 'string', Password::defaults(), 'confirmed'],
+            ], [
+                'current_password.required' => 'La contraseña actual es obligatoria.',
+                'current_password.current_password' => 'La contraseña actual no coincide.',
+                'password.required' => 'La nueva contraseña es obligatoria.',
+                'password.confirmed' => 'Las contraseñas no coinciden.',
             ]);
         } catch (ValidationException $e) {
             $this->reset('current_password', 'password', 'password_confirmation');
@@ -28,13 +33,18 @@ new #[Layout('components.layouts.app')] class extends Component {
             throw $e;
         }
 
-        Auth::user()->update([
-            'password' => Hash::make($validated['password']),
-        ]);
+        try {
+            Auth::user()->update([
+                'password' => Hash::make($validated['password']),
+            ]);
 
-        $this->reset('current_password', 'password', 'password_confirmation');
+            $this->reset('current_password', 'password', 'password_confirmation');
 
-        $this->dispatch('password-updated');
+            $this->dispatch('swal-success', ['title' => 'Contraseña actualizada', 'message' => 'Tu contraseña se ha actualizado correctamente.']);
+            $this->dispatch('password-updated');
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo actualizar la contraseña. Intenta de nuevo.');
+        }
     }
 }; ?>
 
@@ -52,6 +62,7 @@ new #[Layout('components.layouts.app')] class extends Component {
                 required
                 autocomplete="current-password"
             />
+            @error('current_password') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
             <flux:input
                 wire:model="password"
                 id="update_password_password"
@@ -61,6 +72,7 @@ new #[Layout('components.layouts.app')] class extends Component {
                 required
                 autocomplete="new-password"
             />
+            @error('password') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
             <flux:input
                 wire:model="password_confirmation"
                 id="update_password_password_confirmation"

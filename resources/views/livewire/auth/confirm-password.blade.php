@@ -15,6 +15,8 @@ new #[Layout('components.layouts.auth')] class extends Component {
     {
         $this->validate([
             'password' => ['required', 'string'],
+        ], [
+            'password.required' => 'La contraseña es obligatoria.',
         ]);
 
         if (! Auth::guard('web')->validate([
@@ -22,7 +24,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
             'password' => $this->password,
         ])) {
             throw ValidationException::withMessages([
-                'password' => __('auth.password'),
+                'password' => __('La contraseña ingresada no es correcta.'),
             ]);
         }
 
@@ -54,6 +56,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
                 autocomplete="new-password"
                 placeholder="Contraseña"
             />
+            @error('password') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
         </div>
 
         <flux:button variant="primary" type="submit" class="w-full">{{ __('Confirmar') }}</flux:button>

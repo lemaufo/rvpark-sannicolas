@@ -156,6 +156,92 @@
 
     {{ $slot }}
 
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        const SwalTheme = Swal.mixin({
+            customClass: {
+                confirmButton: 'swal2-confirm-green',
+                cancelButton: 'swal2-cancel-green',
+            },
+            buttonsStyling: false,
+        });
+
+        function showSwalErrorToast(title, message) {
+            Swal.fire({
+                title: title,
+                text: message,
+                icon: 'error',
+                confirmButtonColor: '#4a5d41',
+                confirmButtonText: 'Aceptar',
+                timer: 5000,
+                timerProgressBar: true,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end',
+            });
+        }
+
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('validation-errors', (errors) => {
+                if (errors && typeof errors === 'object') {
+                    const firstKey = Object.keys(errors)[0];
+                    const msg = Array.isArray(errors[firstKey]) ? errors[firstKey][0] : errors[firstKey];
+                    showSwalErrorToast('Error de validación', msg || 'Por favor corrige los errores en el formulario.');
+                }
+            });
+
+            Livewire.on('error', (message) => {
+                showSwalErrorToast('Error', Array.isArray(message) ? message[0] : message);
+            });
+
+            Livewire.on('swal-error', (message) => {
+                showSwalErrorToast('Error', Array.isArray(message) ? message[0] : message);
+            });
+
+            Livewire.on('swal-success', (data) => {
+                const d = Array.isArray(data) ? data[0] : data;
+                Swal.fire({
+                    title: d.title || 'Éxito',
+                    text: d.message || '',
+                    icon: 'success',
+                    confirmButtonColor: '#4a5d41',
+                    confirmButtonText: 'Aceptar',
+                    timer: 3000,
+                    timerProgressBar: true,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end',
+                });
+            });
+        });
+    </script>
+    <style>
+        .swal2-confirm-green {
+            background-color: #4a5d41 !important;
+            color: white !important;
+            border: none !important;
+            border-radius: 0.75rem !important;
+            font-weight: 700 !important;
+            padding: 0.6rem 1.5rem !important;
+        }
+        .swal2-confirm-green:hover {
+            background-color: #3d4d35 !important;
+        }
+        .swal2-cancel-green {
+            background-color: #e4e4e7 !important;
+            color: #27272a !important;
+            border: none !important;
+            border-radius: 0.75rem !important;
+            font-weight: 700 !important;
+            padding: 0.6rem 1.5rem !important;
+        }
+        .swal2-cancel-green:hover {
+            background-color: #d4d4d8 !important;
+        }
+        .swal2-popup {
+            border-radius: 1.25rem !important;
+        }
+    </style>
     @fluxScripts
 </body>
 

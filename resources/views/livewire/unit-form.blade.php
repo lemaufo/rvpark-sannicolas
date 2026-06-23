@@ -42,24 +42,42 @@ new class extends Component {
             'price_per_day' => 'required|numeric|min:0',
             'price_per_hour' => 'required|numeric|min:0',
             'image' => 'nullable|image|max:2048',
+        ], [
+            'name.required' => 'El nombre de la unidad es obligatorio.',
+            'name.max' => 'El nombre no debe exceder 60 caracteres.',
+            'type.required' => 'El tipo de unidad es obligatorio.',
+            'type.in' => 'El tipo debe ser Bungalow, RV o Camping.',
+            'price_per_day.required' => 'El precio por día es obligatorio.',
+            'price_per_day.numeric' => 'El precio por día debe ser un número.',
+            'price_per_day.min' => 'El precio por día no puede ser negativo.',
+            'price_per_hour.required' => 'El precio por hora es obligatorio.',
+            'price_per_hour.numeric' => 'El precio por hora debe ser un número.',
+            'price_per_hour.min' => 'El precio por hora no puede ser negativo.',
+            'image.image' => 'El archivo debe ser una imagen.',
+            'image.max' => 'La imagen no debe exceder 2 MB.',
         ]);
 
-        $data = [
-            'name'   => $this->name,
-            'type'   => $this->type,
-            'status' => 'available',
-            'notes'  => $this->notes,
-            'price_per_day' => $this->price_per_day,
-            'price_per_hour' => $this->price_per_hour,
-        ];
+        try {
+            $data = [
+                'name'   => $this->name,
+                'type'   => $this->type,
+                'status' => 'available',
+                'notes'  => $this->notes,
+                'price_per_day' => $this->price_per_day,
+                'price_per_hour' => $this->price_per_hour,
+            ];
 
-        if ($this->image) {
-            $data['image'] = $this->image->store('units', 'public');
+            if ($this->image) {
+                $data['image'] = $this->image->store('units', 'public');
+            }
+
+            Unit::create($data);
+
+            $this->reset(['name', 'notes', 'price_per_day', 'price_per_hour', 'image']);
+            $this->dispatch('unitCreated');
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo crear la unidad. Intenta de nuevo.');
         }
-
-        Unit::create($data);
-
-        $this->reset(['name', 'notes', 'price_per_day', 'price_per_hour', 'image']);
     }
 
     public function editUnit($id)
@@ -84,29 +102,58 @@ new class extends Component {
             'edit_price_per_day' => 'required|numeric|min:0',
             'edit_price_per_hour' => 'required|numeric|min:0',
             'edit_image' => 'nullable|image|max:2048',
+        ], [
+            'edit_name.required' => 'El nombre de la unidad es obligatorio.',
+            'edit_name.max' => 'El nombre no debe exceder 60 caracteres.',
+            'edit_type.required' => 'El tipo de unidad es obligatorio.',
+            'edit_type.in' => 'El tipo debe ser Bungalow, RV o Camping.',
+            'edit_price_per_day.required' => 'El precio por día es obligatorio.',
+            'edit_price_per_day.numeric' => 'El precio por día debe ser un número.',
+            'edit_price_per_day.min' => 'El precio por día no puede ser negativo.',
+            'edit_price_per_hour.required' => 'El precio por hora es obligatorio.',
+            'edit_price_per_hour.numeric' => 'El precio por hora debe ser un número.',
+            'edit_price_per_hour.min' => 'El precio por hora no puede ser negativo.',
+            'edit_image.image' => 'El archivo debe ser una imagen.',
+            'edit_image.max' => 'La imagen no debe exceder 2 MB.',
         ]);
 
-        $data = [
-            'name'   => $this->edit_name,
-            'type'   => $this->edit_type,
-            'notes'  => $this->edit_notes,
-            'price_per_day' => $this->edit_price_per_day,
-            'price_per_hour' => $this->edit_price_per_hour,
-        ];
+        try {
+            $data = [
+                'name'   => $this->edit_name,
+                'type'   => $this->edit_type,
+                'notes'  => $this->edit_notes,
+                'price_per_day' => $this->edit_price_per_day,
+                'price_per_hour' => $this->edit_price_per_hour,
+            ];
 
-        if ($this->edit_image) {
-            $data['image'] = $this->edit_image->store('units', 'public');
+            if ($this->edit_image) {
+                $data['image'] = $this->edit_image->store('units', 'public');
+            }
+
+            $this->editingUnit->update($data);
+
+            $this->reset(['edit_name', 'edit_notes', 'edit_price_per_day', 'edit_price_per_hour', 'edit_image', 'editingUnit']);
+            \Flux::modal('edit-unit-modal')->close();
+            $this->dispatch('unitUpdated');
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo actualizar la unidad. Intenta de nuevo.');
         }
-
-        $this->editingUnit->update($data);
-
-        $this->reset(['edit_name', 'edit_notes', 'edit_price_per_day', 'edit_price_per_hour', 'edit_image', 'editingUnit']);
-        \Flux::modal('edit-unit-modal')->close();
     }
 
     public function deleteUnit($id)
     {
-        Unit::findOrFail($id)->delete();
+        try {
+            $unit = Unit::find($id);
+            if (!$unit) {
+                $this->dispatch('swal-error', 'No se encontró la unidad.');
+                return;
+            }
+            $unit->delete();
+            $this->unitsList = Unit::latest()->paginate(8);
+            $this->dispatch('unitDeleted');
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo eliminar la unidad. Intenta de nuevo.');
+        }
     }
 }; ?>
 
@@ -135,6 +182,7 @@ new class extends Component {
         <div class="mb-5">
             <label class="block text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Nombre de la Unidad *</label>
             <flux:input wire:model="name" placeholder="ej. Jade, Coral, Amber" />
+            @error('name') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
         </div>
 
         {{-- Precios --}}
@@ -142,10 +190,12 @@ new class extends Component {
             <div>
                 <label class="block text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Precio por Día *</label>
                 <flux:input wire:model="price_per_day" type="number" step="0.01" min="0" placeholder="0.00" />
+                @error('price_per_day') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
             </div>
             <div>
                 <label class="block text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Precio por Hora *</label>
                 <flux:input wire:model="price_per_hour" type="number" step="0.01" min="0" placeholder="0.00" />
+                @error('price_per_hour') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
             </div>
         </div>
 
@@ -154,6 +204,7 @@ new class extends Component {
             <label class="block text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Imagen de la Unidad</label>
             <input type="file" wire:model="image" accept="image/*"
                 class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-[#4a5d41] file:text-white hover:file:bg-[#3d4d35] file:cursor-pointer" />
+            @error('image') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
             @if($image)
                 <div class="mt-3">
                     <img src="{{ $image->temporaryUrl() }}" class="h-20 rounded-lg object-cover" />
@@ -195,7 +246,26 @@ new class extends Component {
                         <button wire:click="editUnit({{ $u['id'] }})" class="p-1.5 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors" title="Editar">
                             <flux:icon name="pencil" class="size-4" />
                         </button>
-                        <button wire:click="deleteUnit({{ $u['id'] }})" wire:confirm="¿Eliminar esta unidad?" class="p-1.5 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors" title="Eliminar">
+                        <button wire:click="deleteUnit({{ $u['id'] }})"
+                            x-on:click="
+                                event.preventDefault();
+                                Swal.fire({
+                                    title: '¿Eliminar unidad?',
+                                    text: '¿Estás seguro de que deseas eliminar \"{{ $u['name'] }}\"? Esta acción no se puede deshacer.',
+                                    icon: 'warning',
+                                    showCancelButton: true,
+                                    confirmButtonColor: '#4a5d41',
+                                    cancelButtonColor: '#e4e4e7',
+                                    confirmButtonText: 'Sí, eliminar',
+                                    cancelButtonText: 'Cancelar',
+                                    reverseButtons: true,
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                        $wire.deleteUnit({{ $u['id'] }});
+                                    }
+                                })
+                            "
+                            class="p-1.5 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors" title="Eliminar">
                             <flux:icon name="trash" class="size-4" />
                         </button>
                     </div>
@@ -263,6 +333,7 @@ new class extends Component {
             <div class="mb-5">
                 <label class="block text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Nombre de la Unidad *</label>
                 <flux:input wire:model="edit_name" placeholder="ej. Jade, Coral, Amber" />
+                @error('edit_name') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
             </div>
 
             {{-- Precios --}}
@@ -270,10 +341,12 @@ new class extends Component {
                 <div>
                     <label class="block text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Precio por Día *</label>
                     <flux:input wire:model="edit_price_per_day" type="number" step="0.01" min="0" placeholder="0.00" />
+                    @error('edit_price_per_day') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                 </div>
                 <div>
                     <label class="block text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Precio por Hora *</label>
                     <flux:input wire:model="edit_price_per_hour" type="number" step="0.01" min="0" placeholder="0.00" />
+                    @error('edit_price_per_hour') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                 </div>
             </div>
 
@@ -282,6 +355,7 @@ new class extends Component {
                 <label class="block text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Imagen de la Unidad</label>
                 <input type="file" wire:model="edit_image" accept="image/*"
                     class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-[#4a5d41] file:text-white hover:file:bg-[#3d4d35] file:cursor-pointer" />
+                @error('edit_image') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                 @if($edit_image)
                     <div class="mt-3">
                         <img src="{{ $edit_image->temporaryUrl() }}" class="h-20 rounded-lg object-cover" />
@@ -312,4 +386,53 @@ new class extends Component {
             </div>
         </div>
     </flux:modal>
+
+    @script
+    <script>
+        $wire.on('unitCreated', () => {
+            Swal.fire({
+                title: '¡Unidad Registrada!',
+                text: 'La unidad ha sido creada exitosamente.',
+                icon: 'success',
+                confirmButtonColor: '#4a5d41',
+                confirmButtonText: 'Aceptar',
+                timer: 3000,
+                timerProgressBar: true,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end',
+            });
+        });
+
+        $wire.on('unitUpdated', () => {
+            Swal.fire({
+                title: '¡Unidad Actualizada!',
+                text: 'Los cambios han sido guardados exitosamente.',
+                icon: 'success',
+                confirmButtonColor: '#4a5d41',
+                confirmButtonText: 'Aceptar',
+                timer: 3000,
+                timerProgressBar: true,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end',
+            });
+        });
+
+        $wire.on('unitDeleted', () => {
+            Swal.fire({
+                title: '¡Unidad Eliminada!',
+                text: 'La unidad ha sido eliminada exitosamente.',
+                icon: 'success',
+                confirmButtonColor: '#4a5d41',
+                confirmButtonText: 'Aceptar',
+                timer: 3000,
+                timerProgressBar: true,
+                showConfirmButton: false,
+                toast: true,
+                position: 'top-end',
+            });
+        });
+    </script>
+    @endscript
 </div>
