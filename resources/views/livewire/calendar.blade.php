@@ -52,10 +52,10 @@ new class extends Component {
             }
         }
 
-        // Mostrar solo reservaciones confirmadas/activas en el calendario visual
+        // Mostrar reservaciones (incluyendo pendientes) en el calendario visual
         $this->events = collect($allEvents)->filter(function($e) {
             $status = $e['extendedProps']['status'];
-            return in_array($status, ['confirmed', 'checked_in', 'checked_out']);
+            return in_array($status, ['pending', 'confirmed', 'checked_in', 'checked_out']);
         })->values()->toArray();
 
         $today = Carbon::today()->toDateString();
@@ -71,7 +71,7 @@ new class extends Component {
 
         // Filter "Salidas Hoy" (check_out/end matches today)
         $this->salidasHoy = collect($this->events)
-            ->filter(fn($e) => $e['end'] === $today)
+            ->filter(fn($e) => $e['extendedProps']['check_out'] === $today)
             ->map(fn($e) => [
                 'guest' => $e['extendedProps']['guest_name'],
                 'unit' => $e['extendedProps']['unit_name'],
@@ -104,10 +104,6 @@ new class extends Component {
         }
         
         $this->allReservations = $reservationsForList->map(function($r) {
-            // Simulated origin (direct, web, phone) since db doesn't have it
-            $origins = ['Directo', 'Web', 'Teléfono'];
-            $origin = $origins[$r->id % 3];
-            
             return [
                 'id' => $r->id,
                 'guest_name' => $r->guest_name,
@@ -120,7 +116,6 @@ new class extends Component {
                 'check_out_time' => $r->check_out_time,
                 'status' => $r->status,
                 'total_amount' => (float)$r->total_amount,
-                'origin' => $origin,
                 'created_at' => $r->created_at ? $r->created_at->format('Y-m-d H:i') : null,
                 'updated_at' => $r->updated_at ? $r->updated_at->format('Y-m-d H:i') : null,
             ];
@@ -152,7 +147,7 @@ new class extends Component {
     events: @js($events),
     diasLlenos: @js($diasLlenos),
     allReservations: @js($allReservations),
-    initialDate: '2026-05-27'
+    initialDate: '{{ \Carbon\Carbon::today()->toDateString() }}'
 })" 
 @reservation-cancelled.window="events = $event.detail[0].events; allReservations = $event.detail[0].allReservations; initCalendar(); showModal = false; showCancelModal = false; filterReservations();"
 class="space-y-8">
@@ -324,9 +319,8 @@ class="space-y-8">
                         <div class="flex-1 space-y-2">
                             <div class="flex items-center gap-2">
                                 <h3 class="font-bold text-zinc-900 dark:text-white text-lg" x-text="res.guest_name"></h3>
-                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full border border-zinc-200 dark:border-zinc-600 text-zinc-500 dark:text-zinc-400" x-text="res.origin"></span>
                                 <span class="px-2 py-0.5 text-[10px] font-bold rounded-full text-white"
-                                    :class="res.status === 'confirmed' ? 'bg-emerald-600' : (res.status === 'checked_in' ? 'bg-blue-600' : (res.status === 'checked_out' ? 'bg-zinc-600' : (res.status === 'cancelled' ? 'bg-red-600' : 'bg-amber-600')))"
+                                    :class="res.status === 'confirmed' ? 'bg-emerald-500' : (res.status === 'checked_in' ? 'bg-[#4a5d41]' : (res.status === 'checked_out' ? 'bg-zinc-500' : (res.status === 'cancelled' ? 'bg-red-500' : 'bg-amber-500')))"
                                     x-text="res.status === 'confirmed' ? 'Registrado' : (res.status === 'checked_in' ? 'Activo' : (res.status === 'checked_out' ? 'Completado' : (res.status === 'cancelled' ? 'Cancelado' : 'Pendiente')))">
                                 </span>
                             </div>
@@ -450,8 +444,8 @@ class="space-y-8">
                         <div class="text-right">
                             <span class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-1.5">Estado</span>
                             <span class="px-2.5 py-1 text-xs font-bold rounded-xl border"
-                                :class="selectedEvent.status === 'confirmed' ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/20' : (selectedEvent.status === 'checked_in' ? 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/20' : (selectedEvent.status === 'checked_out' ? 'bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700' : 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/20'))"
-                                x-text="selectedEvent.status === 'confirmed' ? 'Confirmada' : (selectedEvent.status === 'checked_in' ? 'Activa' : (selectedEvent.status === 'checked_out' ? 'Completada' : 'Pendiente'))">
+                                :class="selectedEvent.status === 'confirmed' ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/20' : (selectedEvent.status === 'checked_in' ? 'bg-[#4a5d41]/10 text-[#4a5d41] border-[#4a5d41]/20 dark:bg-[#4a5d41]/30 dark:text-[#a3b899] dark:border-[#4a5d41]/40' : (selectedEvent.status === 'checked_out' ? 'bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:border-zinc-700' : (selectedEvent.status === 'cancelled' ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/20' : 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/20')))"
+                                x-text="selectedEvent.status === 'confirmed' ? 'Confirmada' : (selectedEvent.status === 'checked_in' ? 'Activa' : (selectedEvent.status === 'checked_out' ? 'Completada' : (selectedEvent.status === 'cancelled' ? 'Cancelada' : 'Pendiente')))">
                             </span>
                         </div>
                     </div>
@@ -675,6 +669,30 @@ class="space-y-8">
                             </div>
                         </template>
                     </div>
+
+                    <template x-if="selectedDayData.anteriores && selectedDayData.anteriores.length > 0">
+                        <div class="mt-3 pt-3 border-t border-zinc-100 dark:border-zinc-800/80">
+                            <div class="flex justify-end">
+                                <button @click="selectedDayData.showAnteriores = !selectedDayData.showAnteriores" 
+                                    class="text-[10px] font-bold text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors uppercase tracking-widest flex items-center gap-1">
+                                    <span x-text="selectedDayData.showAnteriores ? 'Ocultar anteriores' : 'Ver anteriores'"></span>
+                                    <svg class="size-3 transition-transform" :class="selectedDayData.showAnteriores ? 'rotate-180' : ''" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                                </button>
+                            </div>
+                            
+                            <div x-show="selectedDayData.showAnteriores" x-collapse class="mt-3 space-y-1.5 overflow-y-auto pr-0.5" style="max-height: 138px;">
+                                <template x-for="(item, i) in selectedDayData.anteriores" :key="i">
+                                    <button
+                                        @click="openEntradaDetail(item)"
+                                        class="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-2xl border text-left cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-all active:scale-[0.98] border-zinc-200 dark:border-zinc-700/50 bg-zinc-50 dark:bg-zinc-800/20 opacity-70">
+                                        <span class="size-2 rounded-full shrink-0 bg-zinc-400"></span>
+                                        <span class="font-semibold text-zinc-500 dark:text-zinc-400 text-sm truncate flex-1 line-through decoration-zinc-300 dark:decoration-zinc-600" x-text="item.name"></span>
+                                        <span class="shrink-0 text-xs font-bold text-zinc-400 tabular-nums" x-text="item.checkinFormatted + ' - ' + item.checkoutFormatted"></span>
+                                    </button>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
 
                 </div>
             </template>
@@ -901,7 +919,8 @@ class="space-y-8">
                 
                 openCancelModal() {
                     this.cancelReason = '';
-                    this.cancelReservationId = this.selectedEvent.id;
+                    // El ID puede venir del calendario (ej. "real_5") o de la lista (ej. 5)
+                    this.cancelReservationId = String(this.selectedEvent.id).replace('real_', '');
                     this.showCancelModal = true;
                 },
                 
@@ -954,7 +973,7 @@ class="space-y-8">
                         },
                         moreLinkText: 'Más', // Override default "more" text
                         eventDisplay: 'block', // Force events to act as blocks and respect boundaries
-                        events: this.events,
+                        events: this.events.filter(e => e.extendedProps && e.extendedProps.status !== 'checked_out'),
                         eventOrder: 'end,duration,title', // Custom order: Earliest checkout first, then shortest stay
                         editable: false,
                         selectable: false,
@@ -1069,7 +1088,7 @@ class="space-y-8">
 
                     // Entradas: check_in === dateStr — guardar todos los datos para abrir detalle
                     const entradas = events
-                        .filter(e => e.extendedProps && e.extendedProps.check_in === dateStr)
+                        .filter(e => e.extendedProps && e.extendedProps.check_in === dateStr && e.extendedProps.status !== 'checked_out')
                         .map(e => ({ 
                             id: e.id,
                             title: e.title,
@@ -1089,8 +1108,32 @@ class="space-y-8">
                     const estancias = events
                         .filter(e => {
                             if (!e.extendedProps) return false;
+                            if (e.extendedProps.status === 'checked_out') return false;
                             // Ignorar estado; si cruza el dia y no es check_in de HOY, es estancia
                             return e.extendedProps.check_in < dateStr && dateStr <= e.extendedProps.check_out;
+                        })
+                        .map(e => ({
+                            id: e.id,
+                            title: e.title,
+                            name: e.extendedProps.guest_name,
+                            unit_type: e.extendedProps.unit_type,
+                            check_in: e.extendedProps.check_in,
+                            check_out: e.extendedProps.check_out,
+                            guest_name: e.extendedProps.guest_name,
+                            guest_phone: e.extendedProps.guest_phone,
+                            unit_name: e.extendedProps.unit_name,
+                            total_amount: e.extendedProps.total_amount,
+                            status: e.extendedProps.status,
+                            checkinFormatted: this.formatDateShort(e.extendedProps.check_in),
+                            checkoutFormatted: this.formatDateShort(e.extendedProps.check_out)
+                        }));
+
+                    // Anteriores: checked_out que ocurrieron en este día
+                    const anteriores = events
+                        .filter(e => {
+                            if (!e.extendedProps) return false;
+                            if (e.extendedProps.status !== 'checked_out') return false;
+                            return e.extendedProps.check_in === dateStr || (e.extendedProps.check_in < dateStr && dateStr <= e.extendedProps.check_out);
                         })
                         .map(e => ({
                             id: e.id,
@@ -1113,7 +1156,7 @@ class="space-y-8">
                     const dateFormatted = new Date(y, m - 1, d)
                         .toLocaleDateString('es-MX', { year: 'numeric', month: 'long', day: 'numeric' });
 
-                    this.selectedDayData = { date: dateStr, dateFormatted, entradasLabel, entradas, estancias };
+                    this.selectedDayData = { date: dateStr, dateFormatted, entradasLabel, entradas, estancias, anteriores, showAnteriores: false };
                     this.showDayModal = true;
                 },
 

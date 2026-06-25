@@ -68,6 +68,39 @@ new class extends Component {
         }
     }
 
+    public function confirmReservation($id)
+    {
+        try {
+            $res = Reservation::find($id);
+            if ($res && $res->status == 'pending') {
+                $service = app(\App\Services\ReservationService::class);
+                $service->confirmReservation($res, auth()->id());
+                
+                $this->loadData();
+                $this->dispatch('swal-success', ['title' => 'Reserva confirmada', 'message' => 'La reservación ha sido confirmada exitosamente.']);
+            }
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo confirmar la reservación. Intenta de nuevo.');
+        }
+    }
+
+    public function cancelReservation($id, $reason)
+    {
+        try {
+            $reservation = Reservation::find($id);
+            if ($reservation && $reservation->status !== 'cancelled') {
+                $service = app(\App\Services\ReservationService::class);
+                $service->cancelReservation($reservation, auth()->id(), $reason);
+                $this->loadData();
+                $this->dispatch('swal-success', ['title' => 'Reserva cancelada', 'message' => 'La reservación se ha cancelado exitosamente.']);
+            } else {
+                $this->dispatch('swal-error', 'No se pudo cancelar la reserva.');
+            }
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo cancelar la reserva. Intenta de nuevo.');
+        }
+    }
+
     public function checkIn($id)
     {
         try {
@@ -240,13 +273,43 @@ new class extends Component {
                             @if($res->status == 'pending')
                                 <span class="mt-1 inline-block px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-500">Pendiente de Confirmar</span>
                             @else
-                                <span class="mt-1 inline-block px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-500">Confirmada</span>
+                                <span class="mt-1 inline-block px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-500">Confirmado</span>
                             @endif
                         </div>
-                        <div class="flex gap-2 shrink-0">
-                            <button wire:click="checkIn({{ $res->id }})" class="px-4 py-2.5 sm:py-2 bg-[#4a5d41] hover:bg-[#3d4d35] text-white text-xs sm:text-sm font-bold rounded-xl transition-colors shadow-sm min-h-[44px] sm:min-h-0">
-                                Check-In
-                            </button>
+                        <div class="flex gap-2 shrink-0 items-center">
+                            @if($res->status == 'pending')
+                                <div class="inline-flex items-stretch rounded-xl shadow-sm overflow-hidden">
+                                    <button wire:click="confirmReservation({{ $res->id }})" class="px-4 py-2.5 sm:py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-xs sm:text-sm font-bold transition-colors border-r border-emerald-600/40">
+                                        Confirmar
+                                    </button>
+                                    <flux:dropdown position="bottom" align="end" class="flex items-stretch">
+                                        <button class="px-2 h-full min-h-full bg-emerald-500 hover:bg-emerald-600 text-white transition-colors flex items-center justify-center">
+                                            <flux:icon name="chevron-down" class="size-3.5" stroke-width="3" />
+                                        </button>
+                                        <flux:menu class="w-48 p-1.5 rounded-2xl shadow-xl">
+                                            <flux:menu.item @click="$dispatch('open-cancel-modal', { id: {{ $res->id }} })" icon="x-mark" class="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl font-bold">
+                                                Cancelar Reserva
+                                            </flux:menu.item>
+                                        </flux:menu>
+                                    </flux:dropdown>
+                                </div>
+                            @else
+                                <div class="inline-flex items-stretch rounded-xl shadow-sm overflow-hidden">
+                                    <button wire:click="checkIn({{ $res->id }})" class="px-4 py-2.5 sm:py-2 bg-[#4a5d41] hover:bg-[#3d4d35] text-white text-xs sm:text-sm font-bold transition-colors border-r border-white/20">
+                                        Check-In
+                                    </button>
+                                    <flux:dropdown position="bottom" align="end" class="flex items-stretch">
+                                        <button class="px-2 h-full min-h-full bg-[#4a5d41] hover:bg-[#3d4d35] text-white transition-colors flex items-center justify-center">
+                                            <flux:icon name="chevron-down" class="size-3.5" stroke-width="3" />
+                                        </button>
+                                        <flux:menu class="w-48 p-1.5 rounded-2xl shadow-xl">
+                                            <flux:menu.item @click="$dispatch('open-cancel-modal', { id: {{ $res->id }} })" icon="x-mark" class="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl font-bold">
+                                                Cancelar Reserva
+                                            </flux:menu.item>
+                                        </flux:menu>
+                                    </flux:dropdown>
+                                </div>
+                            @endif
                         </div>
                     </div>
                 @empty
@@ -283,4 +346,28 @@ new class extends Component {
     <flux:modal name="new-reservation" class="md:w-full md:max-w-xl">
         @livewire('receptionist.new-reservation')
     </flux:modal>
+
+    {{-- Cancel Reason Modal --}}
+    <div x-data="{ show: false, id: null, reason: '' }" 
+         @open-cancel-modal.window="show = true; id = $event.detail.id; reason = ''"
+         x-show="show" 
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-900/80 backdrop-blur-sm"
+         style="z-index: 60;"
+         x-cloak>
+        <div class="bg-white dark:bg-zinc-900 rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden border border-zinc-200 dark:border-zinc-800 p-6" @click.away="show = false">
+            <h3 class="text-xl font-black text-red-600 dark:text-red-500 mb-2">Cancelar Reserva</h3>
+            <p class="text-sm text-zinc-500 dark:text-zinc-400 mb-4">¿Estás seguro de que deseas cancelar esta reserva? Por favor, indica el motivo.</p>
+            
+            <textarea x-model="reason" rows="3" class="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl p-3 text-sm focus:ring-red-500 focus:border-red-500 outline-none mb-4 placeholder-zinc-400" placeholder="Motivo de cancelación..."></textarea>
+            
+            <div class="flex gap-3">
+                <button @click="show = false" class="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 font-bold rounded-xl transition-all">
+                    Atrás
+                </button>
+                <button @click="$wire.cancelReservation(id, reason); show = false" :disabled="!reason.trim()" class="flex-1 py-2.5 bg-red-600 text-white hover:bg-red-700 font-bold rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
 </div>

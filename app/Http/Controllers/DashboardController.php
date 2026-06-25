@@ -44,6 +44,22 @@ class DashboardController extends Controller
         // ── Ocupaciones en vivo ───────────────────────────────────────────────
         $ocupacionesEnVivo = Unit::where('status', 'occupied')->get();
 
+        // ── Ingresos Diarios ───────────────────────────────────────────
+        $ingresosHoy = Reservation::whereDate('created_at', Carbon::today())
+            ->whereIn('status', ['confirmed', 'checked_in', 'checked_out'])
+            ->sum('total_amount');
+
+        $ingresosAyer = Reservation::whereDate('created_at', Carbon::yesterday())
+            ->whereIn('status', ['confirmed', 'checked_in', 'checked_out'])
+            ->sum('total_amount');
+
+        if ($ingresosAyer > 0) {
+            $cambioIngresosNum = (($ingresosHoy - $ingresosAyer) / $ingresosAyer) * 100;
+            $cambioIngresos = ($cambioIngresosNum > 0 ? '+' : '') . number_format($cambioIngresosNum, 1) . '%';
+        } else {
+            $cambioIngresos = $ingresosHoy > 0 ? '+100%' : '0%';
+        }
+
         // ── Estadísticas de canales ───────────────────────────────────────────
         // Placeholders en 0 — el campo 'source' aún no existe en la BD.
         $statsDirectas = 0;
@@ -64,6 +80,8 @@ class DashboardController extends Controller
             'statsTelefono',
             'statsWeb',
             'statsTotal',
+            'ingresosHoy',
+            'cambioIngresos'
         ));
     }
 }

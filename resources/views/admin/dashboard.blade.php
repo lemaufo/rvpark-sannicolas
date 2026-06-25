@@ -16,7 +16,7 @@
                 ['label' => 'Ocupación Hoy',        'value' => $porcentajeOcupacion . '%',       'change' => $unidadesOcupadas . ' de ' . $totalUnidades . ' unidades', 'icon' => 'home',                          'color' => 'text-emerald-500', 'bg' => 'bg-emerald-50 dark:bg-emerald-900/30'],
                 ['label' => 'Unidades Disponibles',  'value' => (string) $totalDisponibles,        'sub'    => 'de ' . $totalUnidades,                                    'icon' => 'users',                         'color' => 'text-zinc-400',    'bg' => 'bg-zinc-50 dark:bg-zinc-800'],
                 ['label' => 'Entradas Hoy',          'value' => (string) $checkinsHoy->count(),    'sub'    => $checkoutsHoy->count() . ' salidas hoy',                  'icon' => 'arrow-right-start-on-rectangle', 'color' => 'text-zinc-400',    'bg' => 'bg-zinc-50 dark:bg-zinc-800'],
-                ['label' => 'Ingresos Diarios',      'value' => '$2,450',                          'change' => '+12%',                                                   'icon' => 'currency-dollar',               'color' => 'text-emerald-500', 'bg' => 'bg-emerald-50 dark:bg-emerald-900/30'],
+                ['label' => 'Ingresos Diarios',      'value' => '$' . number_format($ingresosHoy, 2), 'change' => $cambioIngresos,                                                   'icon' => 'currency-dollar',               'color' => str_starts_with($cambioIngresos, '-') ? 'text-red-500' : 'text-emerald-500', 'bg' => 'bg-emerald-50 dark:bg-emerald-900/30'],
             ];
         @endphp
 
