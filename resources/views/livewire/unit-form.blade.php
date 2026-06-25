@@ -29,8 +29,22 @@ new class extends Component {
 
     public function with()
     {
+        $units = Unit::latest()->paginate(8);
+
+        // Una sola consulta para obtener IDs de unidades ocupadas o reservadas (evita N+1)
+        $occupiedUnitIds = \App\Models\Reservation::whereIn('status', ['confirmed', 'checked_in'])
+            ->pluck('unit_id')
+            ->unique()
+            ->toArray();
+
+        // Agregar bandera is_occupied a cada unidad para la vista
+        $units->getCollection()->transform(function ($unit) use ($occupiedUnitIds) {
+            $unit->is_occupied = $unit->status === 'occupied' || in_array($unit->id, $occupiedUnitIds);
+            return $unit;
+        });
+
         return [
-            'unitsList' => Unit::latest()->paginate(8),
+            'unitsList' => $units,
         ];
     }
 
@@ -86,6 +100,13 @@ new class extends Component {
     public function editUnit($id)
     {
         $unit = Unit::find($id);
+
+        // Validar que la unidad no esté ocupada
+        if ($this->isUnitOccupied($unit)) {
+            $this->dispatch('swal-unit-occupied', ['action' => 'editar', 'unit' => $unit->name]);
+            return;
+        }
+
         $this->editingUnit = $unit;
         $this->edit_name = $unit->name;
         $this->edit_type = $unit->type;
@@ -97,8 +118,30 @@ new class extends Component {
         \Flux::modal('edit-unit-modal')->show();
     }
 
+    private function isUnitOccupied($unit): bool
+    {
+        if (!$unit) return false;
+
+        // Verificar por estado directo 'occupied'
+        if ($unit->status === 'occupied') {
+            return true;
+        }
+
+        // Verificar si hay una reservación activa (confirmed o checked_in)
+        return \App\Models\Reservation::where('unit_id', $unit->id)
+            ->whereIn('status', ['confirmed', 'checked_in'])
+            ->exists();
+    }
+
     public function updateUnit()
     {
+        // Validación de seguridad: la unidad no debe estar ocupada
+        if ($this->editingUnit && $this->isUnitOccupied($this->editingUnit)) {
+            $this->dispatch('swal-unit-occupied', ['action' => 'editar', 'unit' => $this->editingUnit->name]);
+            \Flux::modal('edit-unit-modal')->close();
+            return;
+        }
+
         $this->validate([
             'edit_name' => 'required|string|max:60',
             'edit_type' => 'required|in:bungalow,rv,camping',
@@ -156,6 +199,13 @@ new class extends Component {
             $this->dispatch('swal-error', 'No se encontró la unidad.');
             return;
         }
+
+        // Validar que la unidad no esté ocupada
+        if ($this->isUnitOccupied($unit)) {
+            $this->dispatch('swal-unit-occupied', ['action' => 'eliminar', 'unit' => $unit->name]);
+            return;
+        }
+
         $this->unitToDeleteId = $id;
         $this->unitToDeleteName = $unit->name;
         $this->dispatch('swal-confirm-delete', $unit->name);
@@ -169,6 +219,15 @@ new class extends Component {
                 $this->dispatch('swal-error', 'No se encontró la unidad.');
                 return;
             }
+
+            // Validación de seguridad: la unidad no debe estar ocupada
+            if ($this->isUnitOccupied($unit)) {
+                $this->dispatch('swal-unit-occupied', ['action' => 'eliminar', 'unit' => $unit->name]);
+                $this->unitToDeleteId = null;
+                $this->unitToDeleteName = '';
+                return;
+            }
+
             $unit->delete();
             $this->unitToDeleteId = null;
             $this->unitToDeleteName = '';
@@ -267,13 +326,28 @@ new class extends Component {
                         <p class="text-xs text-zinc-400">{{ ucfirst($u['type']) }} - ${{ number_format($u['price_per_day'], 2) }}/día</p>
                     </div>
                     <div class="flex gap-1">
-                        <button wire:click="editUnit({{ $u['id'] }})" class="p-1.5 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors" title="Editar">
-                            <flux:icon name="pencil" class="size-4" />
-                        </button>
-                        <button wire:click="confirmDelete({{ $u['id'] }})"
-                            class="p-1.5 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors" title="Eliminar">
-                            <flux:icon name="trash" class="size-4" />
-                        </button>
+                        @php $occupied = $u['is_occupied'] ?? false; @endphp
+
+                        @if($occupied)
+                            <span class="p-1.5 text-zinc-300 dark:text-zinc-600 cursor-not-allowed rounded-lg" title="Unidad ocupada - no se puede editar">
+                                <flux:icon name="lock-closed" class="size-4" />
+                            </span>
+                        @else
+                            <button wire:click="editUnit({{ $u['id'] }})" class="p-1.5 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-950/30 transition-colors" title="Editar">
+                                <flux:icon name="pencil" class="size-4" />
+                            </button>
+                        @endif
+
+                        @if($occupied)
+                            <span class="p-1.5 text-zinc-300 dark:text-zinc-600 cursor-not-allowed rounded-lg" title="Unidad ocupada - no se puede eliminar">
+                                <flux:icon name="lock-closed" class="size-4" />
+                            </span>
+                        @else
+                            <button wire:click="confirmDelete({{ $u['id'] }})"
+                                class="p-1.5 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors" title="Eliminar">
+                                <flux:icon name="trash" class="size-4" />
+                            </button>
+                        @endif
                     </div>
                 </div>
             @empty
@@ -456,6 +530,32 @@ new class extends Component {
                 showConfirmButton: false,
                 toast: true,
                 position: 'top-end',
+            });
+        });
+
+        $wire.on('swal-unit-occupied', (data) => {
+            const d = Array.isArray(data) ? data[0] : data;
+            const actionLabels = {
+                'editar': 'editada',
+                'eliminar': 'eliminada',
+            };
+            Swal.fire({
+                title: 'Unidad ocupada',
+                html: `<div style="text-align: center;">
+                    <div style="font-size: 1.1rem; margin-bottom: 0.25rem;">
+                        La unidad <strong>${d.unit}</strong> no puede ser ${actionLabels[d.action] || 'modificada'}
+                    </div>
+                    <div style="font-size: 0.95rem; color: #71717a;">
+                        porque se encuentra <strong style="color: #ef4444;">ocupada</strong> actualmente.
+                    </div>
+                </div>`,
+                icon: 'warning',
+                confirmButtonColor: '#4a5d41',
+                confirmButtonText: 'Entendido',
+                customClass: {
+                    confirmButton: 'swal2-confirm-green',
+                },
+                buttonsStyling: false,
             });
         });
     </script>

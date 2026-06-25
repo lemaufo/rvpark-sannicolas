@@ -5,10 +5,7 @@
                 <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Panel Principal</h1>
                 <p class="text-zinc-500 dark:text-zinc-400 mt-1">Resumen para {{ now()->translatedFormat('l, d \d\e F Y') }}</p>
             </div>
-            <button class="bg-brand-green text-white px-5 py-2.5 rounded-xl font-semibold shadow-lg shadow-brand-green/20 hover:bg-brand-green-dark transition-all duration-200 flex items-center gap-2">
-                <flux:icon name="plus" class="size-5" />
-                <span>Nueva Reserva</span>
-            </button>
+            <livewire:new-reservation />
         </div>
 
         <!-- Stats Grid -->
