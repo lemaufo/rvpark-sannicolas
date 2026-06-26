@@ -290,6 +290,9 @@ new class extends Component {
                                             <flux:menu.item @click="$dispatch('open-cancel-modal', { id: {{ $res->id }} })" icon="x-mark" class="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl font-bold">
                                                 Cancelar Reserva
                                             </flux:menu.item>
+                                            <flux:menu.item href="{{ route('ticket.reserva', $res->id) }}" icon="printer" class="text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900/20 rounded-xl font-bold">
+                                                Generar Ticket PDF
+                                            </flux:menu.item>
                                         </flux:menu>
                                     </flux:dropdown>
                                 </div>
@@ -305,6 +308,9 @@ new class extends Component {
                                         <flux:menu class="w-48 p-1.5 rounded-2xl shadow-xl">
                                             <flux:menu.item @click="$dispatch('open-cancel-modal', { id: {{ $res->id }} })" icon="x-mark" class="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl font-bold">
                                                 Cancelar Reserva
+                                            </flux:menu.item>
+                                            <flux:menu.item href="{{ route('ticket.reserva', $res->id) }}" icon="printer" class="text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900/20 rounded-xl font-bold">
+                                                Generar Ticket PDF
                                             </flux:menu.item>
                                         </flux:menu>
                                     </flux:dropdown>

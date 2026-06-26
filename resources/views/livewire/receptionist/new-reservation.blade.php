@@ -40,11 +40,13 @@ new class extends Component {
     public function updatedCheckInTime()
     {
         $this->calculateAmount();
+        $this->checkAvailability();
     }
     
     public function updatedCheckOutTime()
     {
         $this->calculateAmount();
+        $this->checkAvailability();
     }
     
     public function updatedUnitId()
@@ -57,13 +59,6 @@ new class extends Component {
     {
         $this->errorMessage = '';
         if ($this->unit_id && $this->check_in && $this->check_out) {
-            // Verificar que la unidad no esté en limpieza
-            $unit = Unit::find($this->unit_id);
-            if ($unit && $unit->status === 'cleaning') {
-                $this->errorMessage = 'La unidad seleccionada se encuentra en limpieza y no está disponible para reservar.';
-                return;
-            }
-
             // Si es por horas, comparar tanto fechas como horas
             if ($this->check_in_time && $this->check_out_time) {
                 $checkInFull = Carbon::parse($this->check_in . ' ' . $this->check_in_time);
@@ -249,8 +244,8 @@ new class extends Component {
                 <select wire:model.live="unit_id" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2.5">
                     <option value="">Seleccione una unidad...</option>
                     @foreach($units as $unit)
-                        <option value="{{ $unit->id }}" @if($unit->status !== 'available') disabled @endif>
-                            {{ $unit->name }} ({{ ucfirst($unit->type) }}) @if($unit->status !== 'available') - No disponible @endif
+                        <option value="{{ $unit->id }}">
+                            {{ $unit->name }} ({{ ucfirst($unit->type) }}) @if($unit->status !== 'available') - ({{ $unit->status === 'occupied' ? 'Ocupada' : 'En limpieza' }}) @endif
                         </option>
                     @endforeach
                 </select>

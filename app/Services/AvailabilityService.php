@@ -17,12 +17,6 @@ class AvailabilityService
      */
     public function isAvailable(int $unitId, string $checkIn, string $checkOut): bool
     {
-        // Verificar que la unidad no esté en limpieza
-        $unit = Unit::find($unitId);
-        if ($unit && $unit->status === 'cleaning') {
-            return false;
-        }
-
         // Revisamos si existe alguna reserva activa que se solape (overlap) con estas fechas
         $overlapping = Reservation::where('unit_id', $unitId)
             ->whereIn('status', ['confirmed', 'checked_in'])
@@ -57,8 +51,7 @@ class AvailabilityService
             })
             ->pluck('unit_id');
 
-        $query = Unit::whereNotIn('id', $occupiedUnitIds)
-                     ->where('status', '!=', 'cleaning'); // Excluir unidades en limpieza
+        $query = Unit::whereNotIn('id', $occupiedUnitIds);
 
         if ($type) {
             $query->where('type', $type);
