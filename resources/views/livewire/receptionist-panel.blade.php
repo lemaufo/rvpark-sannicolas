@@ -207,7 +207,7 @@ new class extends Component {
     </div>
 
     {{-- Accesos Rápidos Táctiles --}}
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+    <div class="grid grid-cols-3 gap-3 mb-8">
         <button x-data x-on:click="$flux.modal('new-reservation').show()" type="button" class="flex flex-col items-center justify-center gap-2 p-4 sm:p-5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl shadow-sm hover:shadow-md hover:border-brand-green/30 active:scale-[0.97] transition-all duration-150 min-h-[72px] sm:min-h-[80px]">
             <flux:icon name="plus-circle" class="size-6 sm:size-7 text-[#4a5d41]" />
             <span class="text-[11px] sm:text-xs font-bold text-zinc-700 dark:text-zinc-300 text-center leading-tight">Nueva<br class="sm:hidden"> Reserva</span>
@@ -221,11 +221,6 @@ new class extends Component {
         <a href="{{ route('reservas') }}" class="flex flex-col items-center justify-center gap-2 p-4 sm:p-5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl shadow-sm hover:shadow-md hover:border-blue-500/30 active:scale-[0.97] transition-all duration-150 min-h-[72px] sm:min-h-[80px]">
             <flux:icon name="calendar" class="size-6 sm:size-7 text-blue-500" />
             <span class="text-[11px] sm:text-xs font-bold text-zinc-700 dark:text-zinc-300 text-center leading-tight">Ver<br class="sm:hidden"> Calendario</span>
-        </a>
-        
-        <a href="{{ route('registro') }}" class="flex flex-col items-center justify-center gap-2 p-4 sm:p-5 bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800 rounded-2xl shadow-sm hover:shadow-md hover:border-emerald-500/30 active:scale-[0.97] transition-all duration-150 min-h-[72px] sm:min-h-[80px]">
-            <flux:icon name="document-text" class="size-6 sm:size-7 text-emerald-500" />
-            <span class="text-[11px] sm:text-xs font-bold text-zinc-700 dark:text-zinc-300 text-center leading-tight">Registro<br class="sm:hidden"> Diario</span>
         </a>
     </div>
 

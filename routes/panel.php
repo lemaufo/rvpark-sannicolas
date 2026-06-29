@@ -19,7 +19,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::view('inventario', 'inventario')->name('inventario');
     Route::view('reservas', 'reservas')->name('reservas');
-    Route::view('registro', 'registro')->name('registro');
+    Route::view('registro', 'registro')->name('registro')->middleware('role:admin');
     Route::view('configuracion', 'configuracion')->name('configuracion');
 
     Route::get('ticket/reserva/{reservation}', [\App\Http\Controllers\TicketController::class, 'reserva'])->name('ticket.reserva');

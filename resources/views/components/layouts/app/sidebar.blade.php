@@ -49,10 +49,9 @@
                 <flux:navlist.item icon="calendar" :href="route('reservas')" :current="request()->routeIs('reservas')"
                     wire:navigate>Reservaciones</flux:navlist.item>
 
-                <flux:navlist.item icon="document-text" :href="route('registro')"
-                    :current="request()->routeIs('registro')" wire:navigate>Registro</flux:navlist.item>
-
                 @if (auth()->user()->role === 'admin')
+                    <flux:navlist.item icon="document-text" :href="route('registro')"
+                        :current="request()->routeIs('registro')" wire:navigate>Registro</flux:navlist.item>
                     <flux:navlist.item icon="chart-bar" :href="route('admin.reportes.index')"
                         :current="request()->routeIs('admin.reportes*')" wire:navigate>Reportes</flux:navlist.item>
                     <flux:navlist.item icon="users" :href="route('admin.usuarios.index')"

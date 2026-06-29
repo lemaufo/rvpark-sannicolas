@@ -3,7 +3,7 @@
         <div class="mb-8 flex items-end justify-between">
             <div>
                 <h1 class="text-3xl font-bold text-zinc-900 dark:text-white">Panel Principal</h1>
-                <p class="text-zinc-500 dark:text-zinc-400 mt-1">Resumen para {{ now()->translatedFormat('l, d \d\e F Y') }}</p>
+                <p class="text-red-600 dark:text-red-400 mt-1 font-semibold italic text-sm sm:text-base">Resumen para {{ now()->translatedFormat('l, d \d\e F Y') }}</p>
             </div>
             <livewire:new-reservation />
         </div>
