@@ -12,7 +12,7 @@ class TicketController extends Controller
         $reservation->load('unit');
 
         $logoData = null;
-        $logoPath = public_path('logo_triangular.png');
+        $logoPath = public_path('logo_ticket.png');
         if (file_exists($logoPath)) {
             $logoData = 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath));
         }
@@ -21,9 +21,9 @@ class TicketController extends Controller
         $filename = "ticket-RV-{$reservation->id}-{$timestamp}.pdf";
 
         $pdf = Pdf::loadView('tickets.reserva', compact('reservation', 'logoData'))
-            ->setPaper('letter')
+            ->setPaper([0, 0, 204, 595])
             ->setOption('isRemoteEnabled', true);
 
-        return $pdf->download($filename);
+        return $pdf->stream($filename);
     }
 }

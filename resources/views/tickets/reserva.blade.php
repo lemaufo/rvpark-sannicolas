@@ -3,28 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <style>
+        @page {
+            margin: 0;
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'DejaVu Sans', 'Helvetica', 'Arial', sans-serif;
-            font-size: 11px;
+            font-size: 10px;
             color: #000;
-            width: 612px;
-            margin: 0 auto;
+            width: 100%;
+            margin: 0;
+            padding: 0;
         }
         .ticket {
-            width: 288px;
-            margin: 0 auto;
-            padding: 10px 0;
+            width: 100%;
+            padding: 10px 8px;
+            margin: 0;
         }
         .center { text-align: center; }
         .bold { font-weight: bold; }
         .divider { border-top: 1px dashed #999; margin: 8px 0; }
-        .logo { width: 120px; display: block; margin: 0 auto 5px; }
-        .small { font-size: 9px; }
-        .large { font-size: 14px; }
-        .title { font-size: 13px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
-        .line { margin-bottom: 2px; line-height: 1.6; }
-        .ticket-footer { font-size: 9px; text-align: center; margin-top: 10px; line-height: 1.5; }
+        .logo { width: 135px; display: block; margin: 0 auto 5px; }
+        .small { font-size: 8px; }
+        .large { font-size: 13px; }
+        .title { font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        .line { margin-bottom: 2px; line-height: 1.5; }
+        .ticket-footer { font-size: 8px; text-align: center; margin-top: 10px; line-height: 1.4; }
     </style>
 </head>
 <body>
@@ -35,7 +39,7 @@
             @endif
             <div class="title">RV Park San Nicolás</div>
             <div class="small">Tel: 967 114 75 51</div>
-            <div class="small">www.rvparksannicolas.com</div>
+            <div class="small">rvparkcampingsannicolas.com.mx</div>
         </div>
 
         <div class="divider"></div>

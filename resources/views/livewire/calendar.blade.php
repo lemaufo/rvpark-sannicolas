@@ -492,7 +492,7 @@ class="space-y-8">
 
                     {{-- Action Buttons --}}
                     <div class="flex flex-col gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">
-                        <button @click="downloadTicket(selectedEvent.id.replace('real_', ''))"
+                        <button @click="downloadTicket(String(selectedEvent.id).replace('real_', ''))"
                             class="w-full py-2 bg-[#4a5d41] text-white hover:bg-[#3d4d35] font-bold rounded-xl transition-all shadow-sm active:scale-[0.98] flex items-center justify-center gap-2">
                             <flux:icon name="printer" class="size-4" />
                             Generar Ticket PDF
@@ -932,25 +932,10 @@ class="space-y-8">
                     Livewire.find(document.querySelector('[wire\\:id]').getAttribute('wire:id')).call('cancelReservation', this.cancelReservationId, this.cancelReason);
                 },
 
-                async downloadTicket(id) {
-                    const url = '{{ url("/ticket/reserva") }}/' + id;
-                    try {
-                        const resp = await fetch(url);
-                        const blob = await resp.blob();
-                        const disposition = resp.headers.get('content-disposition') || '';
-                        const match = disposition.match(/filename="?([^";\n]+)"?/);
-                        const filename = match ? match[1] : 'ticket.pdf';
-                        const a = document.createElement('a');
-                        a.href = URL.createObjectURL(blob);
-                        a.download = filename;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        URL.revokeObjectURL(a.href);
-                    } catch (e) {
-                        console.error('Error downloading ticket:', e);
-                        showSwalErrorToast('Error', 'No se pudo descargar el ticket. Intenta de nuevo.');
-                    }
+                downloadTicket(id) {
+                    const cleanId = String(id).replace('real_', '');
+                    const url = '{{ url("/ticket/reserva") }}/' + cleanId;
+                    window.open(url, '_blank');
                 },
 
                 initCalendar() {
