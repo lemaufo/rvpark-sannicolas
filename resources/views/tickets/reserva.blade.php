@@ -25,6 +25,7 @@
         .divider { border-top: 1px dashed #999; margin: 8px 0; }
         .logo { width: 135px; display: block; margin: 0 auto 5px; }
         .small { font-size: 8px; }
+        .contact-info { font-size: 10.5px; font-weight: bold; }
         .large { font-size: 13px; }
         .title { font-size: 11px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
         .line { margin-bottom: 2px; line-height: 1.5; }
@@ -38,8 +39,8 @@
                 <img src="{{ $logoData }}" class="logo" />
             @endif
             <div class="title">RV Park San Nicolás</div>
-            <div class="small">Tel: 967 114 75 51</div>
-            <div class="small">rvparkcampingsannicolas.com.mx</div>
+            <div class="contact-info">Tel: 967 114 75 51</div>
+            <div class="contact-info">rvparkcampingsannicolas.com.mx</div>
         </div>
 
         <div class="divider"></div>

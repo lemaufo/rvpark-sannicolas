@@ -64,7 +64,7 @@ new class extends Component {
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $this->editingUserId,
-            'role' => 'required|in:admin,receptionist',
+            'role' => 'required|in:admin,receptionist,cleaning',
         ];
 
         if (!$this->editingUserId) {
@@ -202,6 +202,11 @@ new class extends Component {
                                         class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
                                         Administrador
                                     </span>
+                                @elseif ($user['role'] === 'cleaning')
+                                    <span
+                                        class="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                        Personal Limpieza
+                                    </span>
                                 @else
                                     <span
                                         class="px-3 py-1 rounded-full text-xs font-bold bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
@@ -267,6 +272,7 @@ new class extends Component {
                             class="w-full rounded-xl border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-3">
                             <option value="receptionist">Recepcionista</option>
                             <option value="admin">Administrador</option>
+                            <option value="cleaning">Personal de Limpieza</option>
                         </select>
                         @error('role') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                     </div>

@@ -11,13 +11,32 @@ new class extends Component {
     public $showReservationForm = false;
     public $guest_name = '';
     public $guest_phone = '';
+    public $guest_email = '';
+    public $nationality = 'Mexicana';
+    public $license_plate = '';
     public $check_in = '';
-    public $check_in_time = '';
+    public $check_in_time = '14:00';
     public $check_out = '';
-    public $check_out_time = '';
+    public $check_out_time = '12:00';
     public $total_amount = 0;
     public $filtro = 'all';
     public $errorMessage = '';
+    public $nationalities = [
+        'Mexicana',
+        'Estadounidense',
+        'Canadiense',
+        'Guatemalteca',
+        'Salvadoreña',
+        'Hondureña',
+        'Colombiana',
+        'Argentina',
+        'Española',
+        'Francesa',
+        'Alemana',
+        'Británica',
+        'Italiana',
+        'Otra'
+    ];
 
     public function mount()
     {
@@ -84,7 +103,11 @@ new class extends Component {
         $this->selectedUnitId = $id;
         $this->showReservationForm = false;
         $this->check_in = now()->toDateString();
-        $this->reset(['guest_name', 'guest_phone', 'check_in_time', 'check_out', 'check_out_time', 'total_amount', 'errorMessage']);
+        $this->reset(['guest_name', 'guest_phone', 'guest_email', 'nationality', 'license_plate', 'check_out', 'total_amount', 'errorMessage']);
+        $this->check_in_time = '14:00';
+        $this->check_out_time = '12:00';
+        $this->nationality = 'Mexicana';
+        $this->license_plate = '';
         \Flux::modal('unit-modal')->show();
     }
 
@@ -100,52 +123,20 @@ new class extends Component {
         $this->checkAvailability();
     }
 
-    public function updatedCheckInTime()
-    {
-        $this->calculateAmount();
-        $this->checkAvailability();
-    }
-
-    public function updatedCheckOutTime()
-    {
-        $this->calculateAmount();
-        $this->checkAvailability();
-    }
-
     public function checkAvailability()
     {
         $this->errorMessage = '';
         if ($this->selectedUnitId && $this->check_in && $this->check_out) {
-            // Si es por horas, comparar tanto fechas como horas
-            if ($this->check_in_time && $this->check_out_time) {
-                $checkInFull = Carbon::parse($this->check_in . ' ' . $this->check_in_time);
-                $checkOutFull = Carbon::parse($this->check_out . ' ' . $this->check_out_time);
-
-                $reservations = \App\Models\Reservation::where('unit_id', $this->selectedUnitId)
-                    ->where('status', '!=', 'cancelled')
-                    ->get();
-
-                foreach ($reservations as $res) {
-                    $resIn = Carbon::parse($res->check_in . ' ' . ($res->check_in_time ?: '00:00'));
-                    $resOut = Carbon::parse($res->check_out . ' ' . ($res->check_out_time ?: '23:59'));
-
-                    if ($resIn->lessThan($checkOutFull) && $resOut->greaterThan($checkInFull)) {
-                        $this->errorMessage = 'La unidad seleccionada no está disponible en el horario elegido.';
-                        return;
-                    }
-                }
-            } else {
-                // Sin horas, solo validar solapamiento de fechas estándar
-                $overlapping = \App\Models\Reservation::where('unit_id', $this->selectedUnitId)
-                    ->where('status', '!=', 'cancelled')
-                    ->where(function ($query) {
-                        $query->where('check_in', '<', $this->check_out)
-                              ->where('check_out', '>', $this->check_in);
-                    })->exists();
-                    
-                if ($overlapping) {
-                    $this->errorMessage = 'La unidad seleccionada no está disponible en las fechas elegidas.';
-                }
+            // Sin horas, solo validar solapamiento de fechas estándar
+            $overlapping = \App\Models\Reservation::where('unit_id', $this->selectedUnitId)
+                ->where('status', '!=', 'cancelled')
+                ->where(function ($query) {
+                    $query->where('check_in', '<', $this->check_out)
+                          ->where('check_out', '>', $this->check_in);
+                })->exists();
+                
+            if ($overlapping) {
+                $this->errorMessage = 'La unidad seleccionada no está disponible en las fechas elegidas.';
             }
         }
     }
@@ -162,37 +153,13 @@ new class extends Component {
             $checkInDate = Carbon::parse($this->check_in);
             $checkOutDate = Carbon::parse($this->check_out);
 
-            // Si tenemos hora de entrada y salida, calculamos preciso por horas y días
-            if ($this->check_in_time && $this->check_out_time) {
-                $checkInFull = Carbon::parse($this->check_in . ' ' . $this->check_in_time);
-                $checkOutFull = Carbon::parse($this->check_out . ' ' . $this->check_out_time);
-
-                if ($checkOutFull->lessThanOrEqualTo($checkInFull)) {
-                    $this->total_amount = 0;
-                    return;
-                }
-
-                $totalMinutes = $checkInFull->diffInMinutes($checkOutFull);
-                $totalHours = (int) ceil($totalMinutes / 60);
-
-                // Si es menos de 24 horas, cobrar por hora
-                if ($totalHours < 24) {
-                    $this->total_amount = $totalHours * $unit->price_per_hour;
-                } else {
-                    // Calcular por días + horas restantes
-                    $days = intdiv($totalHours, 24);
-                    $remainingHours = $totalHours % 24;
-                    $this->total_amount = ($days * $unit->price_per_day) + ($remainingHours * $unit->price_per_hour);
-                }
-            } else {
-                // Sin horas, calcular solo por días si el check-out es posterior
-                if ($checkOutDate->lessThanOrEqualTo($checkInDate)) {
-                    $this->total_amount = 0;
-                    return;
-                }
-                $nights = $checkInDate->diffInDays($checkOutDate);
-                $this->total_amount = $nights * $unit->price_per_day;
+            // Sin horas, calcular solo por días si el check-out es posterior
+            if ($checkOutDate->lessThanOrEqualTo($checkInDate)) {
+                $this->total_amount = 0;
+                return;
             }
+            $nights = $checkInDate->diffInDays($checkOutDate);
+            $this->total_amount = $nights * $unit->price_per_day;
         } else {
             $this->total_amount = 0;
         }
@@ -202,39 +169,28 @@ new class extends Component {
     {
         $this->validate([
             'guest_name' => 'required|string|max:120',
-            'guest_phone' => 'required|string|max:20',
-            'check_in' => 'required|date|before_or_equal:check_out',
-            'check_in_time' => 'nullable|date_format:H:i',
-            'check_out' => 'required|date|after_or_equal:check_in',
-            'check_out_time' => 'nullable|date_format:H:i',
+            'guest_phone' => 'nullable|string|max:20',
+            'guest_email' => 'nullable|email|max:120',
+            'nationality' => 'required|string|max:50',
+            'license_plate' => 'nullable|string|max:30',
+            'check_in' => 'required|date|before:check_out',
+            'check_out' => 'required|date|after:check_in',
         ], [
             'guest_name.required' => 'El nombre del huésped es obligatorio.',
             'guest_name.max' => 'El nombre no debe exceder 120 caracteres.',
-            'guest_phone.required' => 'El teléfono del huésped es obligatorio.',
             'guest_phone.max' => 'El teléfono no debe exceder 20 caracteres.',
+            'guest_email.email' => 'El correo electrónico debe ser una dirección válida.',
+            'guest_email.max' => 'El correo electrónico no debe exceder 120 caracteres.',
+            'nationality.required' => 'La nacionalidad es obligatoria.',
+            'nationality.max' => 'La nacionalidad no debe exceder 50 caracteres.',
+            'license_plate.max' => 'Las placas no deben exceder 30 caracteres.',
             'check_in.required' => 'La fecha de check-in es obligatoria.',
             'check_in.date' => 'La fecha de check-in debe ser válida.',
-            'check_in.before_or_equal' => 'La fecha de check-in debe ser anterior o igual al check-out.',
-            'check_in_time.date_format' => 'La hora de check-in debe tener formato HH:mm.',
+            'check_in.before' => 'La fecha de check-in debe ser anterior al check-out.',
             'check_out.required' => 'La fecha de check-out es obligatoria.',
             'check_out.date' => 'La fecha de check-out debe ser válida.',
-            'check_out.after_or_equal' => 'La fecha de check-out debe ser posterior o igual al check-in.',
-            'check_out_time.date_format' => 'La hora de check-out debe tener formato HH:mm.',
+            'check_out.after' => 'La fecha de check-out debe ser posterior al check-in.',
         ]);
-
-        // Validación adicional para reservaciones del mismo día
-        if ($this->check_in === $this->check_out) {
-            if (!$this->check_in_time || !$this->check_out_time) {
-                $this->dispatch('swal-error', 'Para reservas del mismo día, debes especificar la hora de entrada y de salida.');
-                return;
-            }
-            $checkInFull = Carbon::parse($this->check_in . ' ' . $this->check_in_time);
-            $checkOutFull = Carbon::parse($this->check_out . ' ' . $this->check_out_time);
-            if ($checkOutFull->lessThanOrEqualTo($checkInFull)) {
-                $this->dispatch('swal-error', 'La hora de salida debe ser posterior a la hora de entrada.');
-                return;
-            }
-        }
 
         $this->checkAvailability();
         if ($this->errorMessage) {
@@ -248,14 +204,33 @@ new class extends Component {
             \App\Models\Reservation::create([
                 'unit_id' => $this->selectedUnitId,
                 'guest_name' => $this->guest_name,
-                'guest_phone' => $this->guest_phone,
+                'guest_phone' => $this->guest_phone ?: null,
+                'guest_email' => $this->guest_email ?: null,
+                'nationality' => $this->nationality,
+                'license_plate' => $this->license_plate ?: null,
                 'check_in' => $this->check_in,
-                'check_in_time' => $this->check_in_time ?: null,
+                'check_in_time' => '14:00',
                 'check_out' => $this->check_out,
-                'check_out_time' => $this->check_out_time ?: null,
+                'check_out_time' => '12:00',
                 'status' => 'checked_in',
                 'total_amount' => $this->total_amount ?: 0,
             ]);
+
+            $unit = Unit::find($this->selectedUnitId);
+            if ($unit) {
+                $unit->update(['status' => 'occupied']);
+            }
+
+            $this->reset(['guest_name', 'guest_phone', 'guest_email', 'nationality', 'license_plate', 'check_out', 'total_amount', 'errorMessage']);
+            $this->nationality = 'Mexicana';
+            $this->license_plate = '';
+            $this->loadData();
+            $this->dispatch('swal-success', ['title' => 'Reservación creada', 'message' => 'La reservación se ha registrado exitosamente.']);
+            \Flux::modal('unit-modal')->close();
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo crear la reservación. Intenta de nuevo.');
+        }
+    }
 
             $unit = Unit::find($this->selectedUnitId);
             if ($unit) {
@@ -539,23 +514,34 @@ new class extends Component {
                                 </div>
                             </div>
 
-                            <div class="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Hora de Entrada</label>
-                                    <input type="time" wire:model.live="check_in_time" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2 px-3 text-sm">
-                                    @error('check_in_time') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
-                                </div>
-                                <div>
-                                    <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Hora de Salida</label>
-                                    <input type="time" wire:model.live="check_out_time" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2 px-3 text-sm">
-                                    @error('check_out_time') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
-                                </div>
+                            <div>
+                                <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Teléfono (Opcional)</label>
+                                <input type="tel" wire:model="guest_phone" placeholder="Ej. +52 55 1234 5678" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2 px-3 text-sm">
+                                @error('guest_phone') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                             </div>
 
                             <div>
-                                <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Teléfono</label>
-                                <input type="tel" wire:model="guest_phone" placeholder="Ej. +52 55 1234 5678" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2 px-3 text-sm">
-                                @error('guest_phone') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
+                                <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Correo electrónico (Opcional)</label>
+                                <input type="email" wire:model="guest_email" placeholder="Ej. cliente@correo.com" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2 px-3 text-sm">
+                                @error('guest_email') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Nacionalidad</label>
+                                    <select wire:model="nationality" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2 px-3 text-sm">
+                                        <option value="">Seleccione...</option>
+                                        @foreach($nationalities as $nat)
+                                            <option value="{{ $nat }}">{{ $nat }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('nationality') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Placas (Opcional)</label>
+                                    <input type="text" wire:model="license_plate" placeholder="Ej. ABC-1234" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2 px-3 text-sm">
+                                    @error('license_plate') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
+                                </div>
                             </div>
 
                             @php
@@ -565,27 +551,7 @@ new class extends Component {
                             <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30 p-4 rounded-2xl flex justify-between items-center mt-6">
                                 <div>
                                     <span class="block text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Total Estimado</span>
-                                    @if($showBreakdown && $this->check_in_time && $this->check_out_time)
-                                        @php
-                                            $inFull = \Carbon\Carbon::parse($this->check_in . ' ' . $this->check_in_time);
-                                            $outFull = \Carbon\Carbon::parse($this->check_out . ' ' . $this->check_out_time);
-                                            $totalH = (int) ceil($inFull->diffInMinutes($outFull) / 60);
-                                        @endphp
-                                        @if($totalH < 24)
-                                            <span class="block text-xs text-zinc-500 dark:text-zinc-400">{{ $totalH }} hora(s) × ${{ number_format($unitForLabel?->price_per_hour ?? 0, 2) }}/hora</span>
-                                        @else
-                                            @php
-                                                $days = intdiv($totalH, 24);
-                                                $remH = $totalH % 24;
-                                            @endphp
-                                            <span class="block text-xs text-zinc-500 dark:text-zinc-400">
-                                                {{ $days }} día(s) × ${{ number_format($unitForLabel?->price_per_day ?? 0, 2) }}
-                                                @if($remH > 0)
-                                                    + {{ $remH }} hora(s) × ${{ number_format($unitForLabel?->price_per_hour ?? 0, 2) }}
-                                                @endif
-                                            </span>
-                                        @endif
-                                    @elseif($showBreakdown)
+                                    @if($showBreakdown)
                                         <span class="block text-xs text-zinc-500 dark:text-zinc-400">
                                             {{ \Carbon\Carbon::parse($this->check_in)->diffInDays($this->check_out) }} noche(s) × ${{ number_format($unitForLabel?->price_per_day ?? 0, 2) }}
                                         </span>

@@ -91,7 +91,7 @@ new #[Layout('components.layouts.auth')] class extends Component {
         <!-- Password -->
         <div class="relative">
             <flux:input wire:model="password" label="{{ __('Contraseña') }}" type="password" name="password" required
-                autocomplete="current-password" placeholder="Contraseña" />
+                autocomplete="current-password" placeholder="Contraseña" viewable />
             @error('password') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
 
             @if (Route::has('password.request'))

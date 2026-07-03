@@ -43,11 +43,13 @@
             <flux:navlist.group heading="Administración" class="grid">
                 <flux:navlist.item icon="home" :href="route('dashboard')" :current="request()->routeIs('dashboard')"
                     wire:navigate>Panel</flux:navlist.item>
-                <flux:navlist.item icon="archive-box" :href="route('inventario')"
-                    :current="request()->routeIs('inventario')" wire:navigate>Inventario</flux:navlist.item>
+                @if (auth()->user()->role !== 'cleaning')
+                    <flux:navlist.item icon="archive-box" :href="route('inventario')"
+                        :current="request()->routeIs('inventario')" wire:navigate>Inventario</flux:navlist.item>
 
-                <flux:navlist.item icon="calendar" :href="route('reservas')" :current="request()->routeIs('reservas')"
-                    wire:navigate>Reservaciones</flux:navlist.item>
+                    <flux:navlist.item icon="calendar" :href="route('reservas')" :current="request()->routeIs('reservas')"
+                        wire:navigate>Reservaciones</flux:navlist.item>
+                @endif
 
                 @if (auth()->user()->role === 'admin')
                     <flux:navlist.item icon="document-text" :href="route('registro')"

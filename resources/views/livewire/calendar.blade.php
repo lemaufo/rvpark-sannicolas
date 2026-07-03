@@ -95,7 +95,7 @@ new class extends Component {
         
         // Load data for the List View
         $role = auth()->user() ? auth()->user()->role : 'receptionist';
-        $reservationsForList = \App\Models\Reservation::with('unit')->orderBy('check_in', 'desc')->get();
+        $reservationsForList = \App\Models\Reservation::with(['unit', 'images'])->orderBy('check_in', 'desc')->get();
         
         if ($role !== 'admin') {
             $reservationsForList = $reservationsForList->filter(function($r) use ($today) {
@@ -118,6 +118,7 @@ new class extends Component {
                 'total_amount' => (float)$r->total_amount,
                 'created_at' => $r->created_at ? $r->created_at->format('Y-m-d H:i') : null,
                 'updated_at' => $r->updated_at ? $r->updated_at->format('Y-m-d H:i') : null,
+                'images' => $r->images->map(fn($img) => asset('storage/' . $img->image_path))->toArray(),
             ];
         })->values()->toArray();
     }
@@ -489,6 +490,20 @@ class="space-y-8">
                             </template>
                         </div>
                     </div>
+
+                    {{-- Fotos de Check-In --}}
+                    <template x-if="selectedEvent.images && selectedEvent.images.length > 0">
+                        <div class="bg-zinc-50 dark:bg-zinc-800/40 p-3 rounded-2xl border border-zinc-100 dark:border-zinc-800/80">
+                            <span class="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">Fotos de Check-In</span>
+                            <div class="grid grid-cols-3 gap-2">
+                                <template x-for="img in selectedEvent.images" :key="img">
+                                    <a :href="img" target="_blank" class="block rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 aspect-square">
+                                        <img :src="img" class="w-full h-full object-cover hover:scale-105 transition-transform duration-200">
+                                    </a>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
 
                     {{-- Action Buttons --}}
                     <div class="flex flex-col gap-2 pt-3 border-t border-zinc-100 dark:border-zinc-800">

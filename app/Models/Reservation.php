@@ -11,6 +11,9 @@ class Reservation extends Model
         'unit_id',
         'guest_name',
         'guest_phone',
+        'guest_email',
+        'nationality',
+        'license_plate',
         'check_in',
         'check_in_time',
         'check_out',
@@ -24,5 +27,11 @@ class Reservation extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    // Una reserva tiene muchas imágenes
+    public function images()
+    {
+        return $this->hasMany(ReservationImage::class);
     }
 }

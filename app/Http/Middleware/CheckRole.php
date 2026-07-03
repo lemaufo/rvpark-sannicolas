@@ -19,15 +19,15 @@ class CheckRole
      *
      * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
      */
-    public function handle(Request $request, Closure $next, string $role): Response
+    public function handle(Request $request, Closure $next, ...$roles): Response
     {
         // Si no hay sesión activa, redirigir al login
         if (!$request->user()) {
             return redirect()->route('login');
         }
 
-        // Comparar el rol del usuario con el rol requerido por la ruta
-        if ($request->user()->role !== $role) {
+        // Comparar el rol del usuario con los roles permitidos
+        if (!in_array($request->user()->role, $roles)) {
             // Redirigir según el rol real del usuario (evitar bucle de 403)
             return redirect()->route('dashboard');
         }

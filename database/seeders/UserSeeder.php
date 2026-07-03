@@ -38,11 +38,31 @@ class UserSeeder extends Seeder
         );
 
         User::updateOrCreate(
+            ['email' => 'ed.ag.rex@gmail.com'],
+            [
+                'name' => 'Edgar Agustin Ramirez Marquez',
+                'password' => Hash::make('password'),
+                'role' => 'receptionist',
+                'email_verified_at' => now(),
+            ]
+        );
+        User::updateOrCreate(
             ['email' => 'recep2@rvpark.com'],
             [
                 'name' => 'Recepcionista 2',
                 'password' => Hash::make('password'),
                 'role' => 'receptionist',
+                'email_verified_at' => now(),
+            ]
+        );
+
+        // 1 Limpieza
+        User::updateOrCreate(
+            ['email' => 'limpieza@rvpark.com'],
+            [
+                'name' => 'Limpieza Usuario',
+                'password' => Hash::make('password'),
+                'role' => 'cleaning',
                 'email_verified_at' => now(),
             ]
         );

@@ -5,8 +5,11 @@ use App\Models\Reservation;
 use App\Models\Unit;
 use App\Models\OperationalStatus;
 use Livewire\Attributes\On;
+use Livewire\WithFileUploads;
 
 new class extends Component {
+    use WithFileUploads;
+
     public $reservations;
     public $units;
 
@@ -17,6 +20,11 @@ new class extends Component {
     public $check_out = '';
     public $total_amount = '';
 
+    public $checkinReservationId = null;
+    public $checkinPhotos = [];
+    public $managePhotosReservationId = null;
+    public $newPhotos = [];
+
     public function mount()
     {
         $this->loadData();
@@ -25,7 +33,7 @@ new class extends Component {
     #[On('reservation-created')]
     public function loadData()
     {
-        $this->reservations = Reservation::with('unit')->orderBy('check_in')->get();
+        $this->reservations = Reservation::with(['unit', 'images'])->orderBy('check_in')->get();
         $this->units = Unit::all();
     }
 
@@ -123,6 +131,102 @@ new class extends Component {
             }
         } catch (\Exception $e) {
             $this->dispatch('swal-error', 'No se pudo realizar el check-in. Intenta de nuevo.');
+        }
+    }
+
+    public function startCheckin($id)
+    {
+        $this->checkinReservationId = $id;
+        $this->checkinPhotos = [];
+        \Flux::modal('checkin-modal')->show();
+    }
+
+    public function checkInWithPhotos()
+    {
+        try {
+            $this->validate([
+                'checkinPhotos.*' => 'image|max:2048'
+            ]);
+
+            $res = Reservation::find($this->checkinReservationId);
+            if ($res && in_array($res->status, ['pending', 'confirmed'])) {
+                $res->update(['status' => 'checked_in']);
+
+                $unit = Unit::find($res->unit_id);
+                if ($unit) {
+                    $unit->update(['status' => 'occupied']);
+                    OperationalStatus::create([
+                        'unit_id' => $unit->id,
+                        'status' => 'occupied',
+                        'user_id' => auth()->id(),
+                        'changed_at' => now()
+                    ]);
+                }
+
+                // Guardar las fotos
+                foreach ($this->checkinPhotos as $photo) {
+                    $path = $photo->store('checkins', 'public');
+                    \App\Models\ReservationImage::create([
+                        'reservation_id' => $res->id,
+                        'image_path' => $path
+                    ]);
+                }
+
+                $this->checkinReservationId = null;
+                $this->checkinPhotos = [];
+                $this->loadData();
+                \Flux::modal('checkin-modal')->close();
+                $this->dispatch('swal-success', ['title' => 'Check-In realizado', 'message' => 'El huésped ha sido registrado exitosamente con sus fotos.']);
+            }
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo realizar el check-in. Intenta de nuevo.');
+        }
+    }
+
+    public function openManagePhotos($id)
+    {
+        $this->managePhotosReservationId = $id;
+        $this->newPhotos = [];
+        \Flux::modal('manage-photos-modal')->show();
+    }
+
+    public function uploadNewPhotos()
+    {
+        try {
+            if ($this->managePhotosReservationId) {
+                $this->validate([
+                    'newPhotos.*' => 'image|max:2048'
+                ]);
+
+                foreach ($this->newPhotos as $photo) {
+                    $path = $photo->store('checkins', 'public');
+                    \App\Models\ReservationImage::create([
+                        'reservation_id' => $this->managePhotosReservationId,
+                        'image_path' => $path
+                    ]);
+                }
+
+                $this->newPhotos = [];
+                $this->loadData();
+                $this->dispatch('swal-success', ['title' => 'Fotos guardadas', 'message' => 'Las fotos se han añadido exitosamente.']);
+            }
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudieron subir las fotos. Intenta de nuevo.');
+        }
+    }
+
+    public function deletePhoto($photoId)
+    {
+        try {
+            $photo = \App\Models\ReservationImage::find($photoId);
+            if ($photo) {
+                \Storage::disk('public')->delete($photo->image_path);
+                $photo->delete();
+                $this->loadData();
+                $this->dispatch('swal-success', ['title' => 'Foto eliminada', 'message' => 'La foto ha sido eliminada.']);
+            }
+        } catch (\Exception $e) {
+            $this->dispatch('swal-error', 'No se pudo eliminar la foto. Intenta de nuevo.');
         }
     }
 
@@ -293,7 +397,7 @@ new class extends Component {
                                 </div>
                             @else
                                 <div class="inline-flex items-stretch rounded-xl shadow-sm overflow-hidden">
-                                    <button wire:click="checkIn({{ $res->id }})" class="px-4 py-2.5 sm:py-2 bg-[#4a5d41] hover:bg-[#3d4d35] text-white text-xs sm:text-sm font-bold transition-colors border-r border-white/20">
+                                    <button wire:click="startCheckin({{ $res->id }})" class="px-4 py-2.5 sm:py-2 bg-[#4a5d41] hover:bg-[#3d4d35] text-white text-xs sm:text-sm font-bold transition-colors border-r border-white/20">
                                         Check-In
                                     </button>
                                     <flux:dropdown position="bottom" align="end" class="flex items-stretch">
@@ -333,9 +437,14 @@ new class extends Component {
                             <p class="font-bold text-zinc-900 dark:text-white text-sm sm:text-base">{{ $res->guest_name }}</p>
                             <p class="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 truncate">{{ $res->unit->name ?? 'N/A' }} • Salida: {{ \Carbon\Carbon::parse($res->check_out)->format('d/m/Y') }}</p>
                         </div>
-                        <button wire:click="checkOut({{ $res->id }})" class="px-4 py-2.5 sm:py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs sm:text-sm font-bold rounded-xl transition-colors shadow-sm min-h-[44px] sm:min-h-0 shrink-0">
-                            Check-Out
-                        </button>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <button wire:click="openManagePhotos({{ $res->id }})" title="Ver o subir fotos" class="p-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-600 dark:text-zinc-300 rounded-xl transition-colors flex items-center justify-center min-h-[44px] min-w-[44px] sm:min-h-0 sm:min-w-0">
+                                <flux:icon name="camera" class="size-5" />
+                            </button>
+                            <button wire:click="checkOut({{ $res->id }})" class="px-4 py-2.5 sm:py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs sm:text-sm font-bold rounded-xl transition-colors shadow-sm min-h-[44px] sm:min-h-0">
+                                Check-Out
+                            </button>
+                        </div>
                     </div>
                 @empty
                     <p class="text-zinc-500 text-sm py-4 text-center">No hay huéspedes activos en este momento.</p>
@@ -371,4 +480,131 @@ new class extends Component {
             </div>
         </div>
     </div>
+
+    {{-- Check-In with Photos Modal --}}
+    <flux:modal name="checkin-modal" class="md:w-full md:max-w-md">
+        @if($checkinReservationId)
+            @php
+                $checkinRes = collect($reservations)->firstWhere('id', $checkinReservationId);
+            @endphp
+            @if($checkinRes)
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-xl font-black text-zinc-900 dark:text-white">Confirmar Check-In</h3>
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Registrar entrada para <strong>{{ $checkinRes->guest_name }}</strong> en <strong>{{ $checkinRes->unit->name ?? 'N/A' }}</strong>.</p>
+                    </div>
+
+                    {{-- Captura/Subida de fotos --}}
+                    <div>
+                        <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Fotos de Check-In (Opcional)</label>
+                        <div class="relative w-full rounded-xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/40 p-6 flex flex-col items-center justify-center transition-colors hover:border-[#4a5d41]/30">
+                            <flux:icon name="camera" class="size-8 text-zinc-400 mb-2" />
+                            <span class="text-xs text-zinc-500 dark:text-zinc-400 text-center font-semibold">Toma fotos con la cámara o selecciona archivos</span>
+                            
+                            {{-- File input with multiple selection and camera trigger on mobile --}}
+                            <input type="file" wire:model="checkinPhotos" accept="image/*" multiple capture="environment" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+                        </div>
+                        @error('checkinPhotos.*') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
+                    </div>
+
+                    {{-- Previsualizaciones temporales --}}
+                    @if(count($checkinPhotos) > 0)
+                        <div class="space-y-2">
+                            <span class="block text-xs font-bold text-zinc-400 uppercase tracking-wider">Fotos seleccionadas ({{ count($checkinPhotos) }})</span>
+                            <div class="grid grid-cols-4 gap-2">
+                                @foreach($checkinPhotos as $index => $photo)
+                                    <div class="relative rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 aspect-square">
+                                        <img src="{{ $photo->temporaryUrl() }}" class="w-full h-full object-cover">
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+                    <div class="flex gap-3 pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                        <button type="button" x-on:click="$flux.modal('checkin-modal').close()" class="flex-1 py-2.5 bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 font-bold rounded-xl transition-all">
+                            Cancelar
+                        </button>
+                        <button type="button" wire:click="checkInWithPhotos" class="flex-1 py-2.5 bg-[#4a5d41] hover:bg-[#3d4d35] text-white font-bold rounded-xl transition-all flex items-center justify-center gap-2">
+                            <flux:icon name="check" class="size-4" />
+                            Realizar Check-In
+                        </button>
+                    </div>
+                </div>
+            @endif
+        @endif
+    </flux:modal>
+
+    {{-- Manage Photos Modal --}}
+    <flux:modal name="manage-photos-modal" class="md:w-full md:max-w-lg">
+        @if($managePhotosReservationId)
+            @php
+                $manageRes = collect($reservations)->firstWhere('id', $managePhotosReservationId);
+            @endphp
+            @if($manageRes)
+                <div class="space-y-6">
+                    <div>
+                        <h3 class="text-xl font-black text-zinc-900 dark:text-white">Fotos de Reservación</h3>
+                        <p class="text-sm text-zinc-500 dark:text-zinc-400 mt-1">Huésped: <strong>{{ $manageRes->guest_name }}</strong> • Unidad: <strong>{{ $manageRes->unit->name ?? 'N/A' }}</strong></p>
+                    </div>
+
+                    {{-- Lista de fotos existentes --}}
+                    <div>
+                        <span class="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Fotos Guardadas</span>
+                        @if($manageRes->images && $manageRes->images->isNotEmpty())
+                            <div class="grid grid-cols-3 gap-3">
+                                @foreach($manageRes->images as $img)
+                                    <div class="relative rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 aspect-square group bg-zinc-50 dark:bg-zinc-800 flex items-center justify-center">
+                                        <a href="{{ asset('storage/' . $img->image_path) }}" target="_blank" class="w-full h-full">
+                                            <img src="{{ asset('storage/' . $img->image_path) }}" class="w-full h-full object-cover transition-transform group-hover:scale-105">
+                                        </a>
+                                        <button type="button" wire:click="deletePhoto({{ $img->id }})" title="Eliminar foto" class="absolute top-1.5 right-1.5 p-1 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow transition-colors">
+                                            <flux:icon name="trash" class="size-3.5" />
+                                        </button>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <p class="text-xs text-zinc-500 dark:text-zinc-400 py-3 text-center border-2 border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">No hay fotos guardadas para esta reservación.</p>
+                        @endif
+                    </div>
+
+                    {{-- Agregar nuevas fotos --}}
+                    <div>
+                        <span class="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">Agregar Nuevas Fotos</span>
+                        <div class="relative w-full rounded-xl border-2 border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/40 p-4 flex flex-col items-center justify-center transition-colors hover:border-[#4a5d41]/30">
+                            <flux:icon name="plus" class="size-6 text-zinc-400 mb-1" />
+                            <span class="text-xs text-zinc-500 dark:text-zinc-400 text-center font-semibold">Toma fotos o arrastra archivos aquí</span>
+                            <input type="file" wire:model="newPhotos" accept="image/*" multiple capture="environment" class="absolute inset-0 opacity-0 cursor-pointer w-full h-full">
+                        </div>
+                        @error('newPhotos.*') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
+                    </div>
+
+                    {{-- Previsualizaciones temporales de nuevas fotos --}}
+                    @if(count($newPhotos) > 0)
+                        <div class="space-y-2">
+                            <span class="block text-xs font-bold text-zinc-400 uppercase tracking-wider">Nuevas fotos por subir ({{ count($newPhotos) }})</span>
+                            <div class="grid grid-cols-4 gap-2">
+                                @foreach($newPhotos as $photo)
+                                    <div class="relative rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 aspect-square">
+                                        <img src="{{ $photo->temporaryUrl() }}" class="w-full h-full object-cover">
+                                    </div>
+                                @endforeach
+                            </div>
+                            <button type="button" wire:click="uploadNewPhotos" class="w-full mt-2 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-xl transition-all flex items-center justify-center gap-2">
+                                <flux:icon name="arrow-up-tray" class="size-4" />
+                                Subir nuevas fotos
+                            </button>
+                        </div>
+                    @endif
+
+                    <div class="flex justify-end pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                        <button type="button" x-on:click="$flux.modal('manage-photos-modal').close()" class="px-6 py-2.5 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 font-bold rounded-xl hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all text-sm">
+                            Listo / Cerrar
+                        </button>
+                    </div>
+                </div>
+            @endif
+        @endif
+    </flux:modal>
 </div>

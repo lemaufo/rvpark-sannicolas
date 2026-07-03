@@ -14,7 +14,7 @@ new class extends Component {
     public $name = '';
     public $notes = '';
     public $price_per_day = '';
-    public $price_per_hour = '';
+    public $price_per_hour = 0;
     public $image;
 
     // Propiedades para editar unidad (Modal)
@@ -54,8 +54,7 @@ new class extends Component {
             'name' => 'required|string|max:60',
             'type' => 'required|in:bungalow,rv,camping',
             'price_per_day' => 'required|numeric|min:0',
-            'price_per_hour' => 'required|numeric|min:0',
-            'notes' => 'required|string|max:255',
+            'notes' => 'nullable|string|max:255',
             'image' => 'nullable|image|max:2048',
         ], [
             'name.required' => 'El nombre de la unidad es obligatorio.',
@@ -65,10 +64,6 @@ new class extends Component {
             'price_per_day.required' => 'El precio por día es obligatorio.',
             'price_per_day.numeric' => 'El precio por día debe ser un número.',
             'price_per_day.min' => 'El precio por día no puede ser negativo.',
-            'price_per_hour.required' => 'El precio por hora es obligatorio.',
-            'price_per_hour.numeric' => 'El precio por hora debe ser un número.',
-            'price_per_hour.min' => 'El precio por hora no puede ser negativo.',
-            'notes.required' => 'Las especificaciones son obligatorias.',
             'notes.max' => 'Las especificaciones no deben exceder 255 caracteres.',
             'image.image' => 'El archivo debe ser una imagen.',
             'image.max' => 'La imagen no debe exceder 2 MB.',
@@ -81,7 +76,7 @@ new class extends Component {
                 'status' => 'available',
                 'notes'  => $this->notes,
                 'price_per_day' => $this->price_per_day,
-                'price_per_hour' => $this->price_per_hour,
+                'price_per_hour' => 0,
             ];
 
             if ($this->image) {
@@ -90,7 +85,8 @@ new class extends Component {
 
             Unit::create($data);
 
-            $this->reset(['name', 'notes', 'price_per_day', 'price_per_hour', 'image']);
+            $this->reset(['name', 'notes', 'price_per_day', 'image']);
+            $this->price_per_hour = 0;
             $this->dispatch('unitCreated');
         } catch (\Exception $e) {
             $this->dispatch('swal-error', 'No se pudo crear la unidad. Intenta de nuevo.');
@@ -112,7 +108,7 @@ new class extends Component {
         $this->edit_type = $unit->type;
         $this->edit_notes = $unit->notes;
         $this->edit_price_per_day = $unit->price_per_day;
-        $this->edit_price_per_hour = $unit->price_per_hour;
+        $this->edit_price_per_hour = 0;
         $this->edit_image = null;
         
         \Flux::modal('edit-unit-modal')->show();
@@ -146,8 +142,7 @@ new class extends Component {
             'edit_name' => 'required|string|max:60',
             'edit_type' => 'required|in:bungalow,rv,camping',
             'edit_price_per_day' => 'required|numeric|min:0',
-            'edit_price_per_hour' => 'required|numeric|min:0',
-            'edit_notes' => 'required|string|max:255',
+            'edit_notes' => 'nullable|string|max:255',
             'edit_image' => 'nullable|image|max:2048',
         ], [
             'edit_name.required' => 'El nombre de la unidad es obligatorio.',
@@ -157,10 +152,6 @@ new class extends Component {
             'edit_price_per_day.required' => 'El precio por día es obligatorio.',
             'edit_price_per_day.numeric' => 'El precio por día debe ser un número.',
             'edit_price_per_day.min' => 'El precio por día no puede ser negativo.',
-            'edit_price_per_hour.required' => 'El precio por hora es obligatorio.',
-            'edit_price_per_hour.numeric' => 'El precio por hora debe ser un número.',
-            'edit_price_per_hour.min' => 'El precio por hora no puede ser negativo.',
-            'edit_notes.required' => 'Las especificaciones son obligatorias.',
             'edit_notes.max' => 'Las especificaciones no deben exceder 255 caracteres.',
             'edit_image.image' => 'El archivo debe ser una imagen.',
             'edit_image.max' => 'La imagen no debe exceder 2 MB.',
@@ -172,7 +163,7 @@ new class extends Component {
                 'type'   => $this->edit_type,
                 'notes'  => $this->edit_notes,
                 'price_per_day' => $this->edit_price_per_day,
-                'price_per_hour' => $this->edit_price_per_hour,
+                'price_per_hour' => 0,
             ];
 
             if ($this->edit_image) {
@@ -268,17 +259,10 @@ new class extends Component {
         </div>
 
         {{-- Precios --}}
-        <div class="grid grid-cols-2 gap-4 mb-5">
-            <div>
-                <label class="block text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Precio por Día</label>
-                @error('price_per_day') <p class="text-red-500 text-xs font-semibold mb-1">{{ $message }}</p> @enderror
-                <flux:input wire:model="price_per_day" type="number" step="0.01" min="0" placeholder="0.00" />
-            </div>
-            <div>
-                <label class="block text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Precio por Hora</label>
-                @error('price_per_hour') <p class="text-red-500 text-xs font-semibold mb-1">{{ $message }}</p> @enderror
-                <flux:input wire:model="price_per_hour" type="number" step="0.01" min="0" placeholder="0.00" />
-            </div>
+        <div class="mb-5">
+            <label class="block text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Precio por Día</label>
+            @error('price_per_day') <p class="text-red-500 text-xs font-semibold mb-1">{{ $message }}</p> @enderror
+            <flux:input wire:model="price_per_day" type="number" step="0.01" min="0" placeholder="0.00" />
         </div>
 
         {{-- Imagen --}}
@@ -417,17 +401,10 @@ new class extends Component {
             </div>
 
             {{-- Precios --}}
-            <div class="grid grid-cols-2 gap-4 mb-5">
-                <div>
-                    <label class="block text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Precio por Día</label>
-                    @error('edit_price_per_day') <p class="text-red-500 text-xs font-semibold mb-1">{{ $message }}</p> @enderror
-                    <flux:input wire:model="edit_price_per_day" type="number" step="0.01" min="0" placeholder="0.00" />
-                </div>
-                <div>
-                    <label class="block text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Precio por Hora</label>
-                    @error('edit_price_per_hour') <p class="text-red-500 text-xs font-semibold mb-1">{{ $message }}</p> @enderror
-                    <flux:input wire:model="edit_price_per_hour" type="number" step="0.01" min="0" placeholder="0.00" />
-                </div>
+            <div class="mb-5">
+                <label class="block text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">Precio por Día</label>
+                @error('edit_price_per_day') <p class="text-red-500 text-xs font-semibold mb-1">{{ $message }}</p> @enderror
+                <flux:input wire:model="edit_price_per_day" type="number" step="0.01" min="0" placeholder="0.00" />
             </div>
 
             {{-- Imagen --}}

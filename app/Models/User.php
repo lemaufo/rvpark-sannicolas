@@ -85,4 +85,12 @@ class User extends Authenticatable // implements MustVerifyEmail
     {
         return $this->hasRole('receptionist');
     }
+
+    /**
+     * Indica si el usuario es de limpieza.
+     */
+    public function isCleaning(): bool
+    {
+        return $this->hasRole('cleaning');
+    }
 }
