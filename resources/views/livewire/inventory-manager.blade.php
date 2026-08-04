@@ -38,6 +38,41 @@ new class extends Component {
         'Otra'
     ];
  
+    private function getColorClasses(string $status): array
+{
+    $map = [
+        'available' => [
+            'bg' => 'bg-emerald-500',
+            'badge_bg' => 'bg-emerald-50 dark:bg-emerald-900/30',
+            'text' => 'text-emerald-500',
+            'border' => 'border-emerald-200 dark:border-emerald-800',
+            'text_dark' => 'text-emerald-600',
+        ],
+        'occupied' => [
+            'bg' => 'bg-red-500',
+            'badge_bg' => 'bg-red-50 dark:bg-red-900/30',
+            'text' => 'text-red-500',
+            'border' => 'border-red-200 dark:border-red-800',
+            'text_dark' => 'text-red-600',
+        ],
+        'cleaning' => [
+            'bg' => 'bg-orange-500',
+            'badge_bg' => 'bg-orange-50 dark:bg-orange-900/30',
+            'text' => 'text-orange-500',
+            'border' => 'border-orange-200 dark:border-orange-800',
+            'text_dark' => 'text-orange-600',
+        ],
+    ];
+
+    return $map[$status] ?? [
+        'bg' => 'bg-zinc-500',
+        'badge_bg' => 'bg-zinc-50 dark:bg-zinc-900/30',
+        'text' => 'text-zinc-500',
+        'border' => 'border-zinc-200 dark:border-zinc-800',
+        'text_dark' => 'text-zinc-600',
+    ];
+}
+
     public function mount()
     {
         $this->loadData();
@@ -60,36 +95,7 @@ new class extends Component {
                         'cleaning' => 'Limpieza',
                         default => $unit->status,
                     },
-                    'color_classes' => match ($unit->status) {
-                        'available' => [
-                            'bg' => 'bg-emerald-500',
-                            'badge_bg' => 'bg-emerald-50 dark:bg-emerald-900/30',
-                            'text' => 'text-emerald-500',
-                            'border' => 'border-emerald-200 dark:border-emerald-800',
-                            'text_dark' => 'text-emerald-600',
-                        ],
-                        'occupied' => [
-                            'bg' => 'bg-red-500',
-                            'badge_bg' => 'bg-red-50 dark:bg-red-900/30',
-                            'text' => 'text-red-500',
-                            'border' => 'border-red-200 dark:border-red-800',
-                            'text_dark' => 'text-red-600',
-                        ],
-                        'cleaning' => [
-                            'bg' => 'bg-orange-500',
-                            'badge_bg' => 'bg-orange-50 dark:bg-orange-900/30',
-                            'text' => 'text-orange-500',
-                            'border' => 'border-orange-200 dark:border-orange-800',
-                            'text_dark' => 'text-orange-600',
-                        ],
-                        default => [
-                            'bg' => 'bg-zinc-500',
-                            'badge_bg' => 'bg-zinc-50 dark:bg-zinc-900/30',
-                            'text' => 'text-zinc-500',
-                            'border' => 'border-zinc-200 dark:border-zinc-800',
-                            'text_dark' => 'text-zinc-600',
-                        ],
-                    ],
+                    'color_classes' => $this->getColorClasses($unit->status),
                     'guest' => $activeRes ? $activeRes->guest_name : null,
                     'details' => $unit->notes ?? 'Sin detalles adicionales',
                 ];
