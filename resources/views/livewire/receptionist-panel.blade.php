@@ -114,6 +114,11 @@ new class extends Component {
         try {
             $res = Reservation::find($id);
             if ($res && in_array($res->status, ['pending', 'confirmed'])) {
+                if (\Carbon\Carbon::parse($res->check_in)->toDateString() !== now()->toDateString()) {
+                    $this->dispatch('swal-error', 'El check-in solo se puede realizar el día programado de llegada.');
+                    return;
+                }
+                
                 $res->update(['status' => 'checked_in']);
 
                 $unit = Unit::find($res->unit_id);
@@ -136,6 +141,12 @@ new class extends Component {
 
     public function startCheckin($id)
     {
+        $res = Reservation::find($id);
+        if ($res && \Carbon\Carbon::parse($res->check_in)->toDateString() !== now()->toDateString()) {
+            $this->dispatch('swal-error', 'El check-in solo se puede realizar el día programado de llegada.');
+            return;
+        }
+
         $this->checkinReservationId = $id;
         $this->checkinPhotos = [];
         \Flux::modal('checkin-modal')->show();
@@ -150,6 +161,12 @@ new class extends Component {
 
             $res = Reservation::find($this->checkinReservationId);
             if ($res && in_array($res->status, ['pending', 'confirmed'])) {
+                if (\Carbon\Carbon::parse($res->check_in)->toDateString() !== now()->toDateString()) {
+                    $this->dispatch('swal-error', 'El check-in solo se puede realizar el día programado de llegada.');
+                    \Flux::modal('checkin-modal')->close();
+                    return;
+                }
+
                 $res->update(['status' => 'checked_in']);
 
                 $unit = Unit::find($res->unit_id);

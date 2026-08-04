@@ -7,7 +7,7 @@ use Carbon\Carbon;
 
 new class extends Component {
     public $showModal = false;
-    
+
     public $unit_id = '';
     public $guest_name = '';
     public $guest_phone = '';
@@ -19,7 +19,10 @@ new class extends Component {
     public $check_out = '';
     public $check_out_time = '12:00';
     public $total_amount = 0;
-    
+
+    public $apply_discount = false;
+    public $discount_percentage = 10;
+
     public $units = [];
     public $errorMessage = '';
     public $nationalities = [
@@ -38,30 +41,40 @@ new class extends Component {
         'Italiana',
         'Otra'
     ];
-    
+
     public function mount()
     {
         $this->units = Unit::all();
     }
-    
+
     public function updatedCheckIn()
     {
         $this->calculateAmount();
         $this->checkAvailability();
     }
-    
+
     public function updatedCheckOut()
     {
         $this->calculateAmount();
         $this->checkAvailability();
     }
-    
+
     public function updatedUnitId()
     {
         $this->calculateAmount();
         $this->checkAvailability();
     }
-    
+
+    public function updatedApplyDiscount()
+    {
+        $this->calculateAmount();
+    }
+
+    public function updatedDiscountPercentage()
+    {
+        $this->calculateAmount();
+    }
+
     public function checkAvailability()
     {
         $this->errorMessage = '';
@@ -71,15 +84,15 @@ new class extends Component {
                 ->where('status', '!=', 'cancelled')
                 ->where(function ($query) {
                     $query->where('check_in', '<', $this->check_out)
-                          ->where('check_out', '>', $this->check_in);
+                        ->where('check_out', '>', $this->check_in);
                 })->exists();
-                
+
             if ($overlapping) {
                 $this->errorMessage = 'La unidad seleccionada no está disponible en las fechas elegidas.';
             }
         }
     }
-    
+
     public function calculateAmount()
     {
         if ($this->unit_id && $this->check_in && $this->check_out) {
@@ -98,12 +111,19 @@ new class extends Component {
                 return;
             }
             $nights = $checkInDate->diffInDays($checkOutDate);
-            $this->total_amount = $nights * $unit->price_per_day;
+            $subtotal = $nights * $unit->price_per_day;
+
+            if ($this->apply_discount) {
+                $discountAmount = $subtotal * ($this->discount_percentage / 100);
+                $this->total_amount = $subtotal - $discountAmount;
+            } else {
+                $this->total_amount = $subtotal;
+            }
         } else {
             $this->total_amount = 0;
         }
     }
-    
+
     public function submit()
     {
         $this->validate([
@@ -133,16 +153,16 @@ new class extends Component {
             'check_out.date' => 'La fecha de check-out debe ser válida.',
             'check_out.after' => 'La fecha de check-out debe ser posterior al check-in.',
         ]);
-        
+
         $this->checkAvailability();
         if ($this->errorMessage) {
             $this->dispatch('swal-error', $this->errorMessage);
             return;
         }
-        
+
         try {
             $this->calculateAmount();
-            
+
             Reservation::create([
                 'unit_id' => $this->unit_id,
                 'guest_name' => $this->guest_name,
@@ -157,14 +177,16 @@ new class extends Component {
                 'status' => 'pending',
                 'total_amount' => $this->total_amount
             ]);
-            
-            $this->reset(['unit_id', 'guest_name', 'guest_phone', 'guest_email', 'nationality', 'license_plate', 'check_in', 'check_out', 'total_amount']);
+
+            $this->reset(['unit_id', 'guest_name', 'guest_phone', 'guest_email', 'nationality', 'license_plate', 'check_in', 'check_out', 'total_amount', 'apply_discount', 'discount_percentage']);
             $this->check_in_time = '14:00';
             $this->check_out_time = '12:00';
             $this->nationality = 'Mexicana';
             $this->license_plate = '';
+            $this->apply_discount = false;
+            $this->discount_percentage = 10;
             $this->showModal = false;
-            
+
             $this->dispatch('swal-success', ['title' => 'Reserva registrada', 'message' => 'La reserva se ha creado exitosamente.']);
             $this->dispatch('reservation-created');
             \Flux::modal('new-reservation')->close();
@@ -175,23 +197,26 @@ new class extends Component {
 }; ?>
 
 <div>
-    <div class="px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900/50">
+    <div
+        class="px-6 py-5 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-900/50">
         <h2 class="text-xl font-black text-zinc-900 dark:text-white flex items-center gap-2">
             <flux:icon name="calendar-days" class="size-6 text-emerald-500" />
             Nueva Reserva
         </h2>
     </div>
-    
+
     <div class="p-6">
         @if (session()->has('message'))
-            <div class="p-4 mb-5 text-sm font-semibold text-emerald-800 rounded-xl bg-emerald-50 border border-emerald-100 dark:bg-emerald-900/30 dark:border-emerald-800/50 dark:text-emerald-400 flex items-center gap-3">
+            <div
+                class="p-4 mb-5 text-sm font-semibold text-emerald-800 rounded-xl bg-emerald-50 border border-emerald-100 dark:bg-emerald-900/30 dark:border-emerald-800/50 dark:text-emerald-400 flex items-center gap-3">
                 <flux:icon name="check-circle" class="size-5" />
                 {{ session('message') }}
             </div>
         @endif
-        
+
         @if($errorMessage)
-            <div class="p-4 mb-5 text-sm font-semibold text-red-800 rounded-xl bg-red-50 border border-red-100 dark:bg-red-900/30 dark:border-red-800/50 dark:text-red-400 flex items-center gap-3">
+            <div
+                class="p-4 mb-5 text-sm font-semibold text-red-800 rounded-xl bg-red-50 border border-red-100 dark:bg-red-900/30 dark:border-red-800/50 dark:text-red-400 flex items-center gap-3">
                 <flux:icon name="exclamation-circle" class="size-5" />
                 {{ $errorMessage }}
             </div>
@@ -200,27 +225,36 @@ new class extends Component {
         <form wire:submit="submit">
             <div class="mb-6">
                 <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Unidad Disponible</label>
-                <select wire:model.live="unit_id" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2.5">
+                <select wire:model.live="unit_id"
+                    class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2.5">
                     <option value="">Seleccione una unidad...</option>
                     @foreach($units as $unit)
                         <option value="{{ $unit->id }}">
-                            {{ $unit->name }} ({{ ucfirst($unit->type) }}) @if($unit->status !== 'available') - ({{ $unit->status === 'occupied' ? 'Ocupada' : 'En limpieza' }}) @endif
+                            {{ $unit->name }} ({{ ucfirst($unit->type) }}) @if($unit->status !== 'available') -
+                            ({{ $unit->status === 'occupied' ? 'Ocupada' : 'En limpieza' }}) @endif
                         </option>
                     @endforeach
                 </select>
-                @error('unit_id') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
+                @error('unit_id') <span
+                class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
             </div>
 
             <div class="grid grid-cols-2 gap-6 mb-6">
                 <div>
-                    <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Check-in (Fecha)</label>
-                    <input type="date" wire:model.live="check_in" min="{{ date('Y-m-d') }}" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2.5">
-                    @error('check_in') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
+                    <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Check-in
+                        (Fecha)</label>
+                    <input type="date" wire:model.live="check_in" min="{{ date('Y-m-d') }}"
+                        class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2.5">
+                    @error('check_in') <span
+                    class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Check-out (Fecha)</label>
-                    <input type="date" wire:model.live="check_out" min="{{ $check_in ?: date('Y-m-d') }}" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2.5">
-                    @error('check_out') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
+                    <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Check-out
+                        (Fecha)</label>
+                    <input type="date" wire:model.live="check_out" min="{{ $check_in ?: date('Y-m-d') }}"
+                        class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2.5">
+                    @error('check_out') <span
+                    class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                 </div>
             </div>
 
@@ -228,14 +262,16 @@ new class extends Component {
             <div class="grid grid-cols-2 gap-6 mb-6">
                 <div>
                     <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Hora de Entrada</label>
-                    <div class="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/40 text-zinc-500 dark:text-zinc-400 py-2.5 px-3.5 text-sm font-medium flex items-center gap-2 select-none">
+                    <div
+                        class="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/40 text-zinc-500 dark:text-zinc-400 py-2.5 px-3.5 text-sm font-medium flex items-center gap-2 select-none">
                         <flux:icon name="clock" class="size-4 text-zinc-400 shrink-0" />
                         <span>2:00 PM</span>
                     </div>
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Hora de Salida</label>
-                    <div class="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/40 text-zinc-500 dark:text-zinc-400 py-2.5 px-3.5 text-sm font-medium flex items-center gap-2 select-none">
+                    <div
+                        class="w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-800/40 text-zinc-500 dark:text-zinc-400 py-2.5 px-3.5 text-sm font-medium flex items-center gap-2 select-none">
                         <flux:icon name="clock" class="size-4 text-zinc-400 shrink-0" />
                         <span>12:00 PM</span>
                     </div>
@@ -244,65 +280,120 @@ new class extends Component {
 
             <div class="mb-6">
                 <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Nombre del Huésped</label>
-                <input type="text" wire:model="guest_name" placeholder="Ej. Juan Pérez" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2.5">
-                @error('guest_name') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
+                <input type="text" wire:model="guest_name" placeholder="Ej. Juan Pérez"
+                    class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2.5">
+                @error('guest_name') <span
+                class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
             </div>
 
             <div class="mb-6">
                 <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Teléfono (Opcional)</label>
-                <input type="tel" wire:model="guest_phone" placeholder="Ej. +52 55 1234 5678" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2.5">
-                @error('guest_phone') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
+                <input type="tel" wire:model="guest_phone" placeholder="Ej. +52 55 1234 5678"
+                    class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2.5">
+                @error('guest_phone') <span
+                class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
             </div>
 
             <div class="mb-6">
-                <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Correo electrónico (Opcional)</label>
-                <input type="email" wire:model="guest_email" placeholder="Ej. cliente@correo.com" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2.5">
-                @error('guest_email') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
+                <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Correo electrónico
+                    (Opcional)</label>
+                <input type="email" wire:model="guest_email" placeholder="Ej. cliente@correo.com"
+                    class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2.5">
+                @error('guest_email') <span
+                class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
             </div>
 
             <div class="grid grid-cols-2 gap-6 mb-6">
                 <div>
                     <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Nacionalidad</label>
-                    <select wire:model="nationality" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2.5 px-3">
+                    <select wire:model="nationality"
+                        class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2.5 px-3">
                         <option value="">Seleccione...</option>
                         @foreach($nationalities as $nat)
                             <option value="{{ $nat }}">{{ $nat }}</option>
                         @endforeach
                     </select>
-                    @error('nationality') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
+                    @error('nationality') <span
+                    class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                 </div>
                 <div>
-                    <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Placas (Opcional)</label>
-                    <input type="text" wire:model="license_plate" placeholder="Ej. ABC-1234" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2.5 px-3">
-                    @error('license_plate') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
+                    <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-2">Placas
+                        (Opcional)</label>
+                    <input type="text" wire:model="license_plate" placeholder="Ej. ABC-1234"
+                        class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2.5 px-3">
+                    @error('license_plate') <span
+                    class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                 </div>
             </div>
-            
+
+            {{-- Descuentos --}}
+            <div
+                class="mb-6 bg-zinc-50/50 dark:bg-zinc-800/30 p-4 rounded-2xl border border-zinc-100 dark:border-zinc-800/80">
+                <label class="flex items-center gap-3 cursor-pointer">
+                    <div class="relative flex items-center">
+                        <input type="checkbox" wire:model.live="apply_discount"
+                            class="peer size-5 cursor-pointer appearance-none rounded border-2 border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-900 checked:border-emerald-500 checked:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:ring-offset-1 dark:focus:ring-offset-zinc-900 transition-all">
+                        <flux:icon name="check"
+                            class="pointer-events-none absolute left-1/2 top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 text-white opacity-0 peer-checked:opacity-100 transition-opacity"
+                            stroke-width="3" />
+                    </div>
+                    <span class="text-sm font-bold text-zinc-700 dark:text-zinc-300">¿Desea aplicar descuento?</span>
+                </label>
+
+                @if($apply_discount)
+                    <div class="pl-8 mt-4 transition-all">
+                        <label
+                            class="block text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider mb-2">Porcentaje
+                            de descuento</label>
+                        <select wire:model.live="discount_percentage"
+                            class="w-full sm:w-1/2 rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2.5 px-3">
+                            <option value="10">10%</option>
+                            <option value="20">20%</option>
+                            <option value="30">30%</option>
+                            <option value="40">40%</option>
+                            <option value="50">50%</option>
+                        </select>
+                    </div>
+                @endif
+            </div>
+
             @php
                 $showBreakdown = $this->unit_id && $this->check_in && $this->check_out && $this->total_amount > 0;
                 $unitForLabel = $showBreakdown ? \App\Models\Unit::find($this->unit_id) : null;
             @endphp
-            <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30 p-5 rounded-2xl flex justify-between items-center mb-6 mt-8">
+            <div
+                class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800/30 p-5 rounded-2xl flex justify-between items-center mb-6 mt-6">
                 <div>
-                    <span class="block text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Total Estimado</span>
+                    <span
+                        class="block text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Total
+                        Estimado</span>
                     @if($showBreakdown)
                         <span class="block text-sm text-zinc-500 dark:text-zinc-400">
-                            {{ \Carbon\Carbon::parse($this->check_in)->diffInDays($this->check_out) }} noche(s) × ${{ number_format($unitForLabel?->price_per_day ?? 0, 2) }}
+                            {{ \Carbon\Carbon::parse($this->check_in)->diffInDays($this->check_out) }} noche(s) ×
+                            ${{ number_format($unitForLabel?->price_per_day ?? 0, 2) }}
+                            @if($apply_discount)
+                                <br><span class="text-emerald-600 dark:text-emerald-400 font-bold text-xs mt-1 inline-block">-
+                                    {{ $discount_percentage }}% de descuento aplicado</span>
+                            @endif
                         </span>
                     @else
                         <span class="block text-sm text-zinc-500 dark:text-zinc-400">Monto por estadía</span>
                     @endif
                 </div>
-                <span class="text-3xl font-black text-emerald-700 dark:text-emerald-300">${{ number_format($total_amount, 2) }}</span>
+                <span
+                    class="text-3xl font-black text-emerald-700 dark:text-emerald-300">${{ number_format($total_amount, 2) }}</span>
             </div>
 
             <div class="pt-6 flex justify-end gap-3 border-t border-zinc-100 dark:border-zinc-800 mt-8">
                 <flux:modal.close>
-                    <button type="button" class="px-6 py-2.5 rounded-xl font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+                    <button type="button"
+                        class="px-6 py-2.5 rounded-xl font-bold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
                         Cancelar
                     </button>
                 </flux:modal.close>
-                <button type="submit" class="px-6 py-2.5 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 rounded-xl font-bold hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2" {{ $errorMessage ? 'disabled' : '' }}>
+                <button type="submit"
+                    class="px-6 py-2.5 bg-zinc-900 text-white dark:bg-white dark:text-zinc-900 rounded-xl font-bold hover:bg-zinc-800 dark:hover:bg-zinc-100 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                    {{ $errorMessage ? 'disabled' : '' }}>
                     <flux:icon name="check" class="size-5" />
                     Registrar Reserva
                 </button>
