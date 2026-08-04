@@ -1,13 +1,13 @@
 <?php
-
+ 
 use Livewire\Volt\Component;
 use App\Models\Unit;
 use Carbon\Carbon;
-
+ 
 new class extends Component {
     public $units = [];
     public $selectedUnitId = null;
-
+ 
     public $showReservationForm = false;
     public $guest_name = '';
     public $guest_phone = '';
@@ -37,12 +37,12 @@ new class extends Component {
         'Italiana',
         'Otra'
     ];
-
+ 
     public function mount()
     {
         $this->loadData();
     }
-
+ 
     public function loadData()
     {
         $this->units = collect(Unit::all())
@@ -97,7 +97,7 @@ new class extends Component {
             ->keyBy('id')
             ->toArray();
     }
-
+ 
     public function openUnit($id)
     {
         $this->selectedUnitId = $id;
@@ -110,19 +110,19 @@ new class extends Component {
         $this->license_plate = '';
         \Flux::modal('unit-modal')->show();
     }
-
+ 
     public function updatedCheckIn()
     {
         $this->calculateAmount();
         $this->checkAvailability();
     }
-
+ 
     public function updatedCheckOut()
     {
         $this->calculateAmount();
         $this->checkAvailability();
     }
-
+ 
     public function checkAvailability()
     {
         $this->errorMessage = '';
@@ -133,13 +133,13 @@ new class extends Component {
                     $query->where('check_in', '<', $this->check_out)
                           ->where('check_out', '>', $this->check_in);
                 })->exists();
-
+ 
             if ($overlapping) {
                 $this->errorMessage = 'La unidad seleccionada no está disponible en las fechas elegidas.';
             }
         }
     }
-
+ 
     public function calculateAmount()
     {
         if ($this->selectedUnitId && $this->check_in && $this->check_out) {
@@ -148,10 +148,10 @@ new class extends Component {
                 $this->total_amount = 0;
                 return;
             }
-
+ 
             $checkInDate = Carbon::parse($this->check_in);
             $checkOutDate = Carbon::parse($this->check_out);
-
+ 
             if ($checkOutDate->lessThanOrEqualTo($checkInDate)) {
                 $this->total_amount = 0;
                 return;
@@ -162,7 +162,7 @@ new class extends Component {
             $this->total_amount = 0;
         }
     }
-
+ 
     public function createReservation()
     {
         $this->validate([
@@ -189,16 +189,16 @@ new class extends Component {
             'check_out.date' => 'La fecha de check-out debe ser válida.',
             'check_out.after' => 'La fecha de check-out debe ser posterior al check-in.',
         ]);
-
+ 
         $this->checkAvailability();
         if ($this->errorMessage) {
             $this->dispatch('swal-error', $this->errorMessage);
             return;
         }
-
+ 
         try {
             $this->calculateAmount();
-
+ 
             \App\Models\Reservation::create([
                 'unit_id' => $this->selectedUnitId,
                 'guest_name' => $this->guest_name,
@@ -213,12 +213,12 @@ new class extends Component {
                 'status' => 'checked_in',
                 'total_amount' => $this->total_amount ?: 0,
             ]);
-
+ 
             $unit = Unit::find($this->selectedUnitId);
             if ($unit) {
                 $unit->update(['status' => 'occupied']);
             }
-
+ 
             $this->reset(['guest_name', 'guest_phone', 'guest_email', 'nationality', 'license_plate', 'check_out', 'total_amount', 'errorMessage']);
             $this->nationality = 'Mexicana';
             $this->license_plate = '';
@@ -229,7 +229,7 @@ new class extends Component {
             $this->dispatch('swal-error', 'No se pudo crear la reservación. Intenta de nuevo.');
         }
     }
-
+ 
     public function markAs($status)
     {
         if ($this->selectedUnitId) {
@@ -241,10 +241,10 @@ new class extends Component {
                             ->where('status', 'checked_in')
                             ->update(['status' => 'checked_out']);
                     }
-
+ 
                     $unit->update(['status' => $status]);
                     $this->loadData();
-
+ 
                     $statusLabels = [
                         'available' => 'Disponible',
                         'occupied' => 'Ocupado',
@@ -261,9 +261,9 @@ new class extends Component {
         }
     }
 }; ?>
-
+ 
 <div class="space-y-8">
-
+ 
     {{-- Header --}}
     <div class="mt-10 mb-8 flex items-end justify-between">
         <div>
@@ -271,7 +271,7 @@ new class extends Component {
             <p class="text-zinc-500 dark:text-zinc-400 mt-1">Resumen para {{ now()->translatedFormat('l, d \d\e F Y') }}</p>
         </div>
     </div>
-
+ 
     {{-- Pendientes de limpieza alert --}}
     @php
         $cleaningUnits = collect($units)->filter(fn($u) => $u['status_raw'] === 'cleaning');
@@ -298,7 +298,7 @@ new class extends Component {
             </div>
         </div>
     @endif
-
+ 
     {{-- Filtros --}}
     <div class="flex flex-wrap gap-2 mb-6">
         @php
@@ -320,7 +320,7 @@ new class extends Component {
             </button>
         @endforeach
     </div>
-
+ 
     <!-- Inventory Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         @forelse(collect($units)->filter(fn($u) => $filtro === 'all' || strtolower($u['type']) === $filtro) as $unit)
@@ -362,7 +362,7 @@ new class extends Component {
             </div>
         @endforelse
     </div>
-
+ 
     <!-- Modal Unit Detail -->
     <flux:modal name="unit-modal" class="md:w-full md:max-w-md">
         @if ($selectedUnitId && isset($units[$selectedUnitId]))
@@ -433,20 +433,20 @@ new class extends Component {
                     @else
                         <div class="space-y-4">
                             <p class="text-xs font-bold text-zinc-400 uppercase tracking-widest mb-2">Crear Reservación Activa</p>
-
+ 
                             @if($errorMessage)
                                 <div class="p-4 mb-2 text-sm font-semibold text-red-800 rounded-xl bg-red-50 border border-red-100 dark:bg-red-900/30 dark:border-red-800/50 dark:text-red-400 flex items-center gap-3">
                                     <flux:icon name="exclamation-circle" class="size-5" />
                                     {{ $errorMessage }}
                                 </div>
                             @endif
-
+ 
                             <div>
                                 <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Nombre del Huésped</label>
                                 <input type="text" wire:model="guest_name" placeholder="Ej. Juan Pérez" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2 px-3 text-sm">
                                 @error('guest_name') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                             </div>
-
+ 
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Check-in (Fecha)</label>
@@ -459,19 +459,19 @@ new class extends Component {
                                     @error('check_out') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                                 </div>
                             </div>
-
+ 
                             <div>
                                 <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Teléfono (Opcional)</label>
                                 <input type="tel" wire:model="guest_phone" placeholder="Ej. +52 55 1234 5678" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2 px-3 text-sm">
                                 @error('guest_phone') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                             </div>
-
+ 
                             <div>
                                 <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Correo electrónico (Opcional)</label>
                                 <input type="email" wire:model="guest_email" placeholder="Ej. cliente@correo.com" class="w-full rounded-xl border-zinc-300 dark:border-zinc-700 dark:bg-zinc-800 dark:text-white shadow-sm focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors py-2 px-3 text-sm">
                                 @error('guest_email') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                             </div>
-
+ 
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-bold text-zinc-700 dark:text-zinc-300 mb-1.5">Nacionalidad</label>
@@ -489,7 +489,7 @@ new class extends Component {
                                     @error('license_plate') <span class="text-red-500 text-xs font-semibold mt-1 inline-block">{{ $message }}</span> @enderror
                                 </div>
                             </div>
-
+ 
                             @php
                                 $showBreakdown = $this->selectedUnitId && $this->check_in && $this->check_out && $this->total_amount > 0;
                                 $unitForLabel = $showBreakdown ? \App\Models\Unit::find($this->selectedUnitId) : null;
@@ -507,7 +507,7 @@ new class extends Component {
                                 </div>
                                 <span class="text-2xl font-black text-emerald-700 dark:text-emerald-300">${{ number_format($total_amount, 2) }}</span>
                             </div>
-
+ 
                             <div class="flex gap-3 mt-4">
                                 <button wire:click="$set('showReservationForm', false)" type="button"
                                     class="flex-1 py-3 bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 font-bold rounded-xl transition-colors">
